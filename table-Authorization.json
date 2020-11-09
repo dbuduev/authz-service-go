@@ -1,0 +1,68 @@
+{
+  "TableName": "Authorization",
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "globalId",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "typeTarget",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "organisationId",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "typeTargetTagless",
+      "AttributeType": "S"
+    }
+  ],
+  "KeySchema": [
+    {
+      "AttributeName": "globalId",
+      "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "typeTarget",
+      "KeyType": "RANGE"
+    }
+  ],
+  "LocalSecondaryIndexes": [
+    {
+      "IndexName": "LSIApplicationTypeTargetTagless",
+      "KeySchema": [
+        {
+          "AttributeName": "globalId",
+          "KeyType": "HASH"
+        },
+        {
+          "AttributeName": "typeTargetTagless",
+          "KeyType": "RANGE"
+        }
+      ],
+      "Projection": {
+        "ProjectionType": "KEYS_ONLY"
+      }
+    }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "GSIApplicationTypeTarget",
+      "KeySchema": [
+        {
+          "AttributeName": "organisationId",
+          "KeyType": "HASH"
+        },
+        {
+          "AttributeName": "typeTarget",
+          "KeyType": "RANGE"
+        }
+      ],
+      "Projection": {
+        "ProjectionType": "ALL"
+      }
+    }
+  ],
+  "BillingMode": "PAY_PER_REQUEST"
+}
