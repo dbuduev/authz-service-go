@@ -1,0 +1,12 @@
+#! /bin/sh
+
+docker start dynamodb-local 2>/dev/null || docker run -p 8000:8000 -d --name dynamodb-local amazon/dynamodb-local -jar DynamoDBLocal.jar -inMemory -sharedDb
+echo 'Waiting for dynamodb to start...'
+n=0
+until [ $n -ge 5 ]
+do
+    sleep 1
+    (docker ps -a | grep dynamodb-local | grep Up 2>&1 >/dev/null) && echo 'Dynamodb successfully started' && break;
+    n=$((n+1))
+done
+
