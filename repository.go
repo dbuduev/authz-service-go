@@ -36,16 +36,20 @@ type nodeDto struct {
 }
 
 const separator = '|'
+const nodePrefix = "node_"
+
+func createNodeDto(node *Node) *nodeDto {
+	return &nodeDto{
+		GlobalId:   fmt.Sprintf("%s_%s", node.OrganisationId, node.Id),
+		TypeTarget: nodePrefix + strings.Join([]string{node.Type, node.Id}, string(separator)),
+		Node:       *node,
+	}
+}
 
 func CreateNode(node *Node) {
 	client := GetClient()
 
-	dto := &nodeDto{
-		GlobalId:   fmt.Sprintf("%s_%s", node.OrganisationId, node.Id),
-		TypeTarget: fmt.Sprintf("node_%s", strings.Join([]string{node.Type, node.Id}, string(separator))),
-		Node:       *node,
-	}
-
+	dto := createNodeDto(node)
 	av, err := dynamodbattribute.MarshalMap(dto)
 
 	fmt.Println(av)
@@ -80,7 +84,7 @@ func GetNodes(organisationId string, nodeType string) []Node {
 				S: aws.String(organisationId),
 			},
 			":type": {
-				S: aws.String("node_" + nodeType),
+				S: aws.String(nodePrefix + nodeType),
 			},
 		},
 	})
