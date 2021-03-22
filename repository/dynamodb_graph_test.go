@@ -34,7 +34,7 @@ func TestGetNodes(t *testing.T) {
 		Type:           "ROLE",
 		Data:           "Branch manager",
 	}
-	err := repository.insertNode(&node)
+	err := repository.insertRecord(&node)
 	if err != nil {
 		t.Fatalf("Failed to insert node %v with error %v", node, err)
 	}

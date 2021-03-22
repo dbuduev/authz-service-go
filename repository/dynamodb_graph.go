@@ -25,7 +25,7 @@ func (r *Repository) getTableName() string {
 	return TableName + "-" + r.environment
 }
 
-func (r *Repository) insertNode(node *LogicalRecordRequest) error {
+func (r *Repository) insertRecord(node *LogicalRecordRequest) error {
 	dto := node.createNodeDto()
 	av, err := dynamodbattribute.MarshalMap(dto)
 
