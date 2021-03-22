@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
+	"reflect"
 	"testing"
 )
 
@@ -19,23 +20,23 @@ func GetClient() *dynamodb.DynamoDB {
 
 func TestGetNodes(t *testing.T) {
 	repository := CreateRepository(GetClient(), "test")
-	node := Node{
+	node := LogicalRecordRequest{
 		OrganisationId: uuid.New(),
 		Id:             uuid.New(),
 		Type:           "ROLE",
 		Data:           "Branch manager",
 	}
-	err := repository.InsertNode(&node)
+	err := repository.insertNode(&node)
 	if err != nil {
 		t.Fatalf("Failed to insert node %v with error %v", node, err)
 	}
 
-	result, err := repository.GetNodes(node.OrganisationId, node.Type)
+	result, err := repository.getNodes(node.OrganisationId, node.Type)
 	if err != nil {
 		t.Fatalf("Failed to get nodes with error %v", err)
 	}
 
-	if node != result[0] {
+	if !reflect.DeepEqual(node, result[0].LogicalRecordRequest) {
 		t.Errorf("Expect %s, got %s", node, result[0])
 	}
 }
