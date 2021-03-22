@@ -3,22 +3,22 @@ package repository
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/google/uuid"
 	"strings"
 )
 
-const TableName = "Authorization"
+type Repository struct {
+	client      *dynamodb.DynamoDB
+	environment string
+}
 
-func GetClient() *dynamodb.DynamoDB {
-	// Create DynamoDB client
-	s := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-
-	return dynamodb.New(s, s.Config.WithEndpoint("http://localhost:8000"))
+func CreateRepository(client *dynamodb.DynamoDB, environment string) *Repository {
+	return &Repository{
+		client:      client,
+		environment: environment,
+	}
 }
 
 type Node struct {
@@ -60,9 +60,13 @@ func (n nodeDto) createNode() Node {
 	}
 }
 
-func InsertNode(node *Node) error {
-	client := GetClient()
+func (r *Repository) GetTableName() string {
+	const TableName = "Authorization"
 
+	return TableName + "-" + r.environment
+}
+
+func (r *Repository) InsertNode(node *Node) error {
 	dto := node.createNodeDto()
 	av, err := dynamodbattribute.MarshalMap(dto)
 
@@ -70,10 +74,10 @@ func InsertNode(node *Node) error {
 		return err
 	}
 
-	_, err = client.PutItem(&dynamodb.PutItemInput{
+	_, err = r.client.PutItem(&dynamodb.PutItemInput{
 		ConditionExpression: aws.String("attribute_not_exists(id)"),
 		Item:                av,
-		TableName:           aws.String(TableName),
+		TableName:           aws.String(r.GetTableName()),
 	})
 
 	if err != nil {
@@ -83,11 +87,10 @@ func InsertNode(node *Node) error {
 	return nil
 }
 
-func GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, error) {
-	client := GetClient()
-	output, err := client.Query(&dynamodb.QueryInput{
+func (r *Repository) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, error) {
+	output, err := r.client.Query(&dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
-		TableName:              aws.String(TableName),
+		TableName:              aws.String(r.GetTableName()),
 		KeyConditionExpression: aws.String("organisationId = :organisationId and begins_with(typeTarget, :type)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":organisationId": {

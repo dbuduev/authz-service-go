@@ -1,5 +1,5 @@
 {
-  "TableName": "Authorization",
+  "TableName": "Authorization-test",
   "AttributeDefinitions": [
     {
       "AttributeName": "globalId",
