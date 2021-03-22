@@ -46,7 +46,7 @@ func (node *LogicalRecordRequest) createNodeDto() *dto {
 func (r *CreateEdgeRequest) createNodeDto() *dto {
 	d := &dto{
 		GlobalId:       fmt.Sprintf("%s_%s", r.OrganisationId, r.Id),
-		TypeTarget:     edgePrefix + "_" + r.TargetNodeType + separator + r.TargetNodeId.String(),
+		TypeTarget:     edgePrefix + r.TargetNodeType + separator + r.TargetNodeId.String(),
 		OrganisationId: r.OrganisationId.String(),
 		Id:             r.Id.String(),
 		Type:           r.TargetNodeType,
