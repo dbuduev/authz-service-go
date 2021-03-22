@@ -141,10 +141,10 @@ func (r *Repository) getNodeEdgesOfType(organisationId, id uuid.UUID, edgeType s
 	return result, nil
 }
 
-func (r *Repository) transactionalInsert(items []interface{}) error {
+func (r *Repository) transactionalInsert(items []CreateEdgeRequest) error {
 	transactWriteItems := make([]*dynamodb.TransactWriteItem, len(items))
 	for i := 0; i < len(items); i++ {
-		av, err := dynamodbattribute.MarshalMap(items[i])
+		av, err := dynamodbattribute.MarshalMap(items[i].createNodeDto())
 		if err != nil {
 			return err
 		}

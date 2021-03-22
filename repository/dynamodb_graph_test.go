@@ -18,8 +18,16 @@ func GetClient() *dynamodb.DynamoDB {
 	return dynamodb.New(s, s.Config.WithEndpoint("http://localhost:8000"))
 }
 
+func CreateTestRepository() *Repository {
+	return CreateRepository(GetClient(), "test")
+}
+
+func GenId(id uuid.UUID, b byte) uuid.UUID {
+	return uuid.NewSHA1(id, []byte{b})
+}
+
 func TestGetNodes(t *testing.T) {
-	repository := CreateRepository(GetClient(), "test")
+	repository := CreateTestRepository()
 	node := LogicalRecordRequest{
 		OrganisationId: uuid.New(),
 		Id:             uuid.New(),
