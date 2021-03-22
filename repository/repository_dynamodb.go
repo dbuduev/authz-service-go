@@ -1,12 +1,10 @@
 package repository
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/google/uuid"
-	"strings"
 )
 
 type Repository struct {
@@ -18,42 +16,6 @@ func CreateRepository(client *dynamodb.DynamoDB, environment string) *Repository
 	return &Repository{
 		client:      client,
 		environment: environment,
-	}
-}
-
-type dto struct {
-	GlobalId       string `json:"globalId"`
-	TypeTarget     string `json:"typeTarget"`
-	OrganisationId string `json:"organisationId"`
-	Id             string `json:"id"`
-	Type           string `json:"type"`
-	Data           string `json:"data"`
-}
-
-const separator = "|"
-const nodePrefix = "node_"
-const edgePrefix = "edge_"
-
-func (node *LogicalRecordRequest) createNodeDto() *dto {
-	return &dto{
-		GlobalId:       fmt.Sprintf("%s_%s", node.OrganisationId, node.Id),
-		TypeTarget:     nodePrefix + strings.Join([]string{node.Type, node.Id.String()}, separator),
-		OrganisationId: node.OrganisationId.String(),
-		Id:             node.Id.String(),
-		Type:           node.Type,
-		Data:           node.Data,
-	}
-}
-
-func (n dto) createLogicalRecord() LogicalRecord {
-	return LogicalRecord{
-		LogicalRecordRequest: LogicalRecordRequest{
-			OrganisationId: uuid.MustParse(n.OrganisationId),
-			Id:             uuid.MustParse(n.Id),
-			Type:           n.Type,
-			Data:           n.Data,
-		},
-		TypeTarget: strings.Split(n.TypeTarget, separator),
 	}
 }
 
