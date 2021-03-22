@@ -21,13 +21,6 @@ func CreateRepository(client *dynamodb.DynamoDB, environment string) *Repository
 	}
 }
 
-type Node struct {
-	OrganisationId uuid.UUID `json:"organisationId"`
-	Id             uuid.UUID `json:"id"`
-	Type           string    `json:"type"`
-	Data           string    `json:"data"`
-}
-
 type nodeDto struct {
 	GlobalId       string `json:"globalId"`
 	TypeTarget     string `json:"typeTarget"`

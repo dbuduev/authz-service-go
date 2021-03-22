@@ -38,8 +38,6 @@ func TestGetNodes(t *testing.T) {
 	if node != result[0] {
 		t.Errorf("Expect %s, got %s", node, result[0])
 	}
-
-	fmt.Println(node, result)
 }
 
 func ExampleString() {
