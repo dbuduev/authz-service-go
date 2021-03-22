@@ -88,14 +88,14 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 		name    string
 		config  testConfig
 		args    args
-		want    []Role
+		want    []byte
 		wantErr bool
 	}{
 		{
 			name:    "Empty",
 			id:      uuid.New(),
 			config:  testConfig{},
-			want:    []Role{},
+			want:    []byte{},
 			wantErr: false,
 		},
 		{
@@ -110,7 +110,7 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 				organisationId: 1,
 				opId:           2,
 			},
-			want:    []Role{{OrganisationId: 1, Id: 3, Name: "Admin"}},
+			want:    []byte{3},
 			wantErr: false,
 		},
 	}
@@ -122,9 +122,9 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 				t.Errorf("GetRolesByOperation() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			want := make([]core.Role, len(tt.want))
-			for i, role := range tt.want {
-				want[i] = role.To(tt.id)
+			want := make([]uuid.UUID, len(tt.want))
+			for i, roleId := range tt.want {
+				want[i] = GenId(tt.id, roleId)
 			}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("GetRolesByOperation() got = %v, want %v", got, want)
