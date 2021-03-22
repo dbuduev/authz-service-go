@@ -103,8 +103,8 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 			id:   uuid.New(),
 			config: testConfig{
 				roles:       []Role{{1, 3, "Admin"}, {1, 4, "PT"}},
-				operations:  []Operation{{OrganisationId: 1, Id: 2, Name: "manage-member"}, {OrganisationId: 1, Id: 5, Name: "view-member"}},
-				assignments: []OperationAssignment{{OrganisationId: 1, RoleId: 3, OperationId: 2}, {OrganisationId: 1, RoleId: 3, OperationId: 5}, {OrganisationId: 1, RoleId: 4, OperationId: 5}},
+				operations:  []Operation{{1, 2, "manage-member"}, {1, 5, "view-member"}},
+				assignments: []OperationAssignment{{1, 3, 2}, {1, 3, 5}, {1, 4, 5}},
 			},
 			args: args{
 				organisationId: 1,
