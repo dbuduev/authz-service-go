@@ -2,6 +2,8 @@ package core
 
 import "github.com/google/uuid"
 
+//TODO: Remove OrganisationId from Operation,
+//since operation is a property of the system.
 type Operation struct {
 	OrganisationId uuid.UUID
 	Id             uuid.UUID

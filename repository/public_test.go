@@ -113,6 +113,21 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 			want:    []byte{3},
 			wantErr: false,
 		},
+		{
+			name: "Two roles having the operation",
+			id:   uuid.New(),
+			config: testConfig{
+				roles:       []Role{{1, 3, "Admin"}, {1, 4, "Owner"}},
+				operations:  []Operation{{1, 2, "manage-member"}, {1, 5, "view-member"}},
+				assignments: []OperationAssignment{{1, 3, 2}, {1, 4, 2}, {1, 4, 5}},
+			},
+			args: args{
+				organisationId: 1,
+				opId:           2,
+			},
+			want:    []byte{3, 4},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
