@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"github.com/dbuduev/authz-service-go/core"
+	"github.com/dbuduev/authz-service-go/dygraph"
 	"github.com/google/uuid"
 )
 
@@ -13,9 +14,13 @@ const (
 	BranchGroupRecordType = "BRANCH_GROUP"
 )
 
+type Repository struct {
+	graphDB GraphDB
+}
+
 func (r *Repository) AddOperation(op core.Operation) error {
 	fmt.Printf("Adding operation %v\n", op)
-	return r.insertRecord(&LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
 		OrganisationId: op.OrganisationId,
 		Id:             op.Id,
 		Type:           OperationRecordType,
@@ -25,7 +30,7 @@ func (r *Repository) AddOperation(op core.Operation) error {
 
 func (r *Repository) AddRole(role core.Role) error {
 	fmt.Printf("Adding role %v\n", role)
-	return r.insertRecord(&LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
 		OrganisationId: role.OrganisationId,
 		Id:             role.Id,
 		Type:           RoleRecordType,
@@ -34,7 +39,7 @@ func (r *Repository) AddRole(role core.Role) error {
 }
 
 func (r *Repository) AddBranch(b core.Branch) error {
-	return r.insertRecord(&LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
 		OrganisationId: b.OrganisationId,
 		Id:             b.Id,
 		Type:           BranchRecordType,
@@ -43,7 +48,7 @@ func (r *Repository) AddBranch(b core.Branch) error {
 }
 
 func (r *Repository) AddBranchGroup(g core.BranchGroup) error {
-	return r.insertRecord(&LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
 		OrganisationId: g.OrganisationId,
 		Id:             g.Id,
 		Type:           BranchGroupRecordType,
@@ -53,7 +58,7 @@ func (r *Repository) AddBranchGroup(g core.BranchGroup) error {
 
 func (r *Repository) AssignOperationToRole(x core.OperationAssignment) error {
 	fmt.Printf("Assigning operation to role %v\n", x)
-	request := []CreateEdgeRequest{
+	request := []dygraph.CreateEdgeRequest{
 		{
 			OrganisationId: x.OrganisationId,
 			Id:             x.OperationId,
@@ -68,11 +73,11 @@ func (r *Repository) AssignOperationToRole(x core.OperationAssignment) error {
 		},
 	}
 
-	return r.transactionalInsert(request)
+	return r.graphDB.TransactionalInsert(request)
 }
 
 func (r *Repository) GetRolesByOperation(organisationId, opId uuid.UUID) ([]uuid.UUID, error) {
-	items, err := r.getNodeEdgesOfType(organisationId, opId, RoleRecordType)
+	items, err := r.graphDB.GetNodeEdgesOfType(organisationId, opId, RoleRecordType)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-package repository
+package dygraph
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
@@ -7,25 +7,26 @@ import (
 	"github.com/google/uuid"
 )
 
-type Repository struct {
+// Type Dygraph implements graph operations on top of Amazon DynamoDB
+type Dygraph struct {
 	client      *dynamodb.DynamoDB
 	environment string
 }
 
-func CreateRepository(client *dynamodb.DynamoDB, environment string) *Repository {
-	return &Repository{
+func CreateGraphClient(client *dynamodb.DynamoDB, environment string) *Dygraph {
+	return &Dygraph{
 		client:      client,
 		environment: environment,
 	}
 }
 
-func (r *Repository) getTableName() string {
+func (r *Dygraph) getTableName() string {
 	const TableName = "Authorization"
 
 	return TableName + "-" + r.environment
 }
 
-func (r *Repository) insertRecord(node *LogicalRecordRequest) error {
+func (r *Dygraph) InsertRecord(node *LogicalRecordRequest) error {
 	dto := node.createNodeDto()
 	av, err := dynamodbattribute.MarshalMap(dto)
 
@@ -46,7 +47,7 @@ func (r *Repository) insertRecord(node *LogicalRecordRequest) error {
 	return nil
 }
 
-func (r *Repository) getNodes(organisationId uuid.UUID, nodeType string) ([]LogicalRecord, error) {
+func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]LogicalRecord, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
 		TableName:              aws.String(r.getTableName()),
@@ -78,7 +79,7 @@ func (r *Repository) getNodes(organisationId uuid.UUID, nodeType string) ([]Logi
 	return result, nil
 }
 
-func (r *Repository) getEdges(organisationId uuid.UUID, edgeType string) ([]LogicalRecord, error) {
+func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]LogicalRecord, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
 		TableName:              aws.String(r.getTableName()),
@@ -110,7 +111,7 @@ func (r *Repository) getEdges(organisationId uuid.UUID, edgeType string) ([]Logi
 	return result, nil
 }
 
-func (r *Repository) getNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]LogicalRecord, error) {
+func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]LogicalRecord, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		TableName:              aws.String(r.getTableName()),
 		KeyConditionExpression: aws.String("globalId = :globalId and begins_with(typeTarget, :type)"),
@@ -141,7 +142,7 @@ func (r *Repository) getNodeEdgesOfType(organisationId, id uuid.UUID, edgeType s
 	return result, nil
 }
 
-func (r *Repository) transactionalInsert(items []CreateEdgeRequest) error {
+func (r *Dygraph) TransactionalInsert(items []CreateEdgeRequest) error {
 	transactWriteItems := make([]*dynamodb.TransactWriteItem, len(items))
 	for i := 0; i < len(items); i++ {
 		av, err := dynamodbattribute.MarshalMap(items[i].createNodeDto())

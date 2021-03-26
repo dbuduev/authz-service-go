@@ -1,7 +1,6 @@
-package repository
+package dygraph
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
@@ -18,28 +17,24 @@ func GetClient() *dynamodb.DynamoDB {
 	return dynamodb.New(s, s.Config.WithEndpoint("http://localhost:8000"))
 }
 
-func CreateTestRepository() *Repository {
-	return CreateRepository(GetClient(), "test")
-}
-
-func GenId(id uuid.UUID, b byte) uuid.UUID {
-	return uuid.NewSHA1(id, []byte{b})
+func CreateTestGraphClient() *Dygraph {
+	return CreateGraphClient(GetClient(), "test")
 }
 
 func TestGetNodes(t *testing.T) {
-	repository := CreateTestRepository()
+	graphClient := CreateTestGraphClient()
 	node := LogicalRecordRequest{
 		OrganisationId: uuid.New(),
 		Id:             uuid.New(),
 		Type:           "ROLE",
 		Data:           "Branch manager",
 	}
-	err := repository.insertRecord(&node)
+	err := graphClient.InsertRecord(&node)
 	if err != nil {
 		t.Fatalf("Failed to insert node %v with error %v", node, err)
 	}
 
-	result, err := repository.getNodes(node.OrganisationId, node.Type)
+	result, err := graphClient.GetNodes(node.OrganisationId, node.Type)
 	if err != nil {
 		t.Fatalf("Failed to get nodes with error %v", err)
 	}
@@ -47,13 +42,4 @@ func TestGetNodes(t *testing.T) {
 	if !reflect.DeepEqual(node, result[0].LogicalRecordRequest) {
 		t.Errorf("Expect %s, got %s", node, result[0])
 	}
-}
-
-func ExampleString() {
-	s := "world"
-	f := func(a string) bool {
-		return &a == &s
-	}
-	fmt.Println(f(s))
-	// Output: true1
 }

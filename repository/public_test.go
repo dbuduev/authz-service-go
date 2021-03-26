@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/dbuduev/authz-service-go/core"
+	"github.com/dbuduev/authz-service-go/dygraph"
 	"github.com/google/uuid"
 	"reflect"
 	"testing"
@@ -25,6 +28,10 @@ type Role struct {
 	OrganisationId byte
 	Id             byte
 	Name           string
+}
+
+func GenId(id uuid.UUID, b byte) uuid.UUID {
+	return uuid.NewSHA1(id, []byte{b})
 }
 
 func (r Role) To(id uuid.UUID) core.Role {
@@ -145,5 +152,24 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 				t.Errorf("GetRolesByOperation() got = %v, want %v", got, want)
 			}
 		})
+	}
+}
+
+func GetClient() *dynamodb.DynamoDB {
+	// Create DynamoDB client
+	s := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	return dynamodb.New(s, s.Config.WithEndpoint("http://localhost:8000"))
+}
+
+func CreateTestGraphClient() *dygraph.Dygraph {
+	return dygraph.CreateGraphClient(GetClient(), "test")
+}
+
+func CreateTestRepository() Repository {
+	return Repository{
+		graphDB: CreateTestGraphClient(),
 	}
 }
