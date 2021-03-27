@@ -76,6 +76,40 @@ func (r *Repository) AssignOperationToRole(x core.OperationAssignment) error {
 	return r.graphDB.TransactionalInsert(request)
 }
 
+func (r *Repository) AssignBranchToBranchGroup(x core.BranchAssignment) error {
+	fmt.Printf("Assigning branch to branch group %v\n", x)
+	request := []dygraph.CreateEdgeRequest{
+		{
+			OrganisationId: x.OrganisationId,
+			Id:             x.BranchId,
+			TargetNodeId:   x.BranchGroupId,
+			TargetNodeType: BranchGroupRecordType,
+		},
+		{
+			OrganisationId: x.OrganisationId,
+			Id:             x.BranchGroupId,
+			TargetNodeId:   x.BranchId,
+			TargetNodeType: BranchRecordType,
+		},
+	}
+
+	return r.graphDB.TransactionalInsert(request)
+}
+
+func (r *Repository) GetBranchesByBranchGroup(organisationId, branchGroupId uuid.UUID) ([]uuid.UUID, error) {
+	items, err := r.graphDB.GetNodeEdgesOfType(organisationId, branchGroupId, BranchRecordType)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]uuid.UUID, len(items))
+	for i, item := range items {
+		result[i] = uuid.MustParse(item.TypeTarget[1])
+	}
+
+	return result, nil
+}
+
 func (r *Repository) GetRolesByOperation(organisationId, opId uuid.UUID) ([]uuid.UUID, error) {
 	items, err := r.graphDB.GetNodeEdgesOfType(organisationId, opId, RoleRecordType)
 	if err != nil {

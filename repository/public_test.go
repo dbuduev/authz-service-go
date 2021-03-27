@@ -57,10 +57,55 @@ func (a OperationAssignment) To(id uuid.UUID) core.OperationAssignment {
 	}
 }
 
+type Branch struct {
+	OrganisationId byte
+	Id             byte
+	Name           string
+}
+
+func (b Branch) To(id uuid.UUID) core.Branch {
+	return core.Branch{
+		OrganisationId: GenId(id, b.OrganisationId),
+		Id:             GenId(id, b.Id),
+		Name:           b.Name,
+	}
+}
+
+type BranchGroup struct {
+	OrganisationId byte
+	Id             byte
+	Name           string
+}
+
+func (b BranchGroup) To(id uuid.UUID) core.BranchGroup {
+	return core.BranchGroup{
+		OrganisationId: GenId(id, b.OrganisationId),
+		Id:             GenId(id, b.Id),
+		Name:           b.Name,
+	}
+}
+
+type BranchAssignment struct {
+	OrganisationId byte
+	BranchId       byte
+	BranchGroupId  byte
+}
+
+func (a BranchAssignment) To(id uuid.UUID) core.BranchAssignment {
+	return core.BranchAssignment{
+		OrganisationId: GenId(id, a.OrganisationId),
+		BranchId:       GenId(id, a.BranchId),
+		BranchGroupId:  GenId(id, a.BranchGroupId),
+	}
+}
+
 type testConfig struct {
-	roles       []Role
-	operations  []Operation
-	assignments []OperationAssignment
+	roles             []Role
+	operations        []Operation
+	assignments       []OperationAssignment
+	branches          []Branch
+	branchGroups      []BranchGroup
+	branchAssignments []BranchAssignment
 }
 
 func setUpTest(repository Repository, config testConfig, id uuid.UUID) {
@@ -80,6 +125,24 @@ func setUpTest(repository Repository, config testConfig, id uuid.UUID) {
 	for _, assignment := range config.assignments {
 		err := repository.AssignOperationToRole(assignment.To(id))
 		if err != nil {
+			panic(err)
+		}
+	}
+
+	for _, b := range config.branches {
+		if err := repository.AddBranch(b.To(id)); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, b := range config.branchGroups {
+		if err := repository.AddBranchGroup(b.To(id)); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, b := range config.branchAssignments {
+		if err := repository.AssignBranchToBranchGroup(b.To(id)); err != nil {
 			panic(err)
 		}
 	}
@@ -306,6 +369,70 @@ func TestRepository_getAllRoles(t *testing.T) {
 	}
 }
 
+func TestRepository_GetBranchesByBranchGroup(t *testing.T) {
+	repository := CreateTestRepository()
+
+	type args struct {
+		organisationId byte
+		branchGroupId  byte
+	}
+
+	tests := []struct {
+		id      uuid.UUID
+		name    string
+		config  testConfig
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "Empty",
+			id:      uuid.New(),
+			config:  testConfig{},
+			want:    []byte{},
+			wantErr: false,
+		},
+		{
+			name: "Simple case",
+			id:   uuid.New(),
+			config: testConfig{
+				branches:          []Branch{{1, 3, "A"}, {1, 4, "B"}},
+				branchGroups:      []BranchGroup{{1, 2, "X"}, {1, 5, "Y"}},
+				branchAssignments: []BranchAssignment{{1, 3, 2}, {1, 3, 5}, {1, 4, 5}},
+			},
+			args: args{
+				organisationId: 1,
+				branchGroupId:  5,
+			},
+			want:    []byte{3, 4},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setUpTest(repository, tt.config, tt.id)
+			got, err := repository.GetBranchesByBranchGroup(GenId(tt.id, tt.args.organisationId), GenId(tt.id, tt.args.branchGroupId))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetBranchesByBranchGroup() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			want := make([]uuid.UUID, len(tt.want))
+			for i, branchId := range tt.want {
+				want[i] = GenId(tt.id, branchId)
+			}
+			sort.Slice(want, func(i, j int) bool {
+				return want[i][0] < want[j][0] // sort UUIDs just by the first byte.
+			})
+			sort.Slice(got, func(i, j int) bool {
+				return got[i][0] < got[j][0]
+			})
+
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("GetBranchesByBranchGroup() got = %v, want %v", got, want)
+			}
+		})
+	}
+}
 func GetClient() *dynamodb.DynamoDB {
 	// Create DynamoDB client
 	s := session.Must(session.NewSessionWithOptions(session.Options{

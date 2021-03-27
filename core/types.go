@@ -36,6 +36,12 @@ type OperationAssignment struct {
 	OperationId    uuid.UUID
 }
 
+type BranchAssignment struct {
+	OrganisationId uuid.UUID
+	BranchId       uuid.UUID
+	BranchGroupId  uuid.UUID
+}
+
 type UserRoleAssignment struct {
 	OrganisationId uuid.UUID
 	RoleId         uuid.UUID
