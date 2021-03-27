@@ -7,6 +7,7 @@ import (
 	"github.com/dbuduev/authz-service-go/dygraph"
 	"github.com/google/uuid"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -224,6 +225,82 @@ func TestRepository_GetOperationsByRole(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("GetRolesByOperation() got = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestRepository_getAllRoles(t *testing.T) {
+	repository := CreateTestRepository()
+
+	type args struct {
+		organisationId byte
+	}
+	tests := []struct {
+		name    string
+		id      uuid.UUID
+		config  testConfig
+		args    args
+		want    []Role
+		wantErr bool
+	}{
+		{
+			name:    "Empty",
+			id:      uuid.New(),
+			config:  testConfig{},
+			want:    []Role{},
+			wantErr: false,
+		},
+		{
+			name: "2 roles",
+			id:   uuid.New(),
+			config: testConfig{
+				roles: []Role{{1, 3, "Admin"}, {1, 4, "PT"}},
+			},
+			args: args{
+				organisationId: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "3 roles, different organisations",
+			id:   uuid.New(),
+			config: testConfig{
+				roles: []Role{{1, 3, "Admin"}, {2, 5, "Admin"}, {1, 4, "PT"}},
+			},
+			args: args{
+				organisationId: 1,
+			},
+			want:    []Role{{1, 3, "Admin"}, {1, 4, "PT"}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setUpTest(repository, tt.config, tt.id)
+			organisationId := GenId(tt.id, tt.args.organisationId)
+			got, err := repository.getAllRoles(organisationId)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getAllRoles() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			var want []core.Role
+			copyFrom := tt.want
+			if copyFrom == nil {
+				copyFrom = tt.config.roles
+			}
+			want = make([]core.Role, len(copyFrom))
+			for i, role := range copyFrom {
+				want[i] = role.To(tt.id)
+			}
+			sort.Slice(want, func(i, j int) bool {
+				return want[i].Name < want[j].Name
+			})
+			sort.Slice(got, func(i, j int) bool {
+				return got[i].Name < got[j].Name
+			})
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("getAllRoles() got = %v, want %v", got, want)
 			}
 		})
 	}

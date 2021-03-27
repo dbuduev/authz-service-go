@@ -104,6 +104,19 @@ func (r *Repository) GetOperationsByRole(organisationId, roleId uuid.UUID) ([]uu
 	return result, nil
 }
 
+func (r *Repository) getAllRoles(organisationId uuid.UUID) ([]core.Role, error) {
+	nodes, err := r.graphDB.GetNodes(organisationId, RoleRecordType)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]core.Role, len(nodes))
+	for i, node := range nodes {
+		result[i] = node.ToRole()
+	}
+
+	return result, nil
+}
+
 //func GetTags(a core.UserRoleAssignment) []string {
 //	return []string{"ASSIGNED_IN_BRANCH", a.BranchId.String()}
 //}
