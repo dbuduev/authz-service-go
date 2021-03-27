@@ -90,6 +90,20 @@ func (r *Repository) GetRolesByOperation(organisationId, opId uuid.UUID) ([]uuid
 	return result, nil
 }
 
+func (r *Repository) GetOperationsByRole(organisationId, roleId uuid.UUID) ([]uuid.UUID, error) {
+	items, err := r.graphDB.GetNodeEdgesOfType(organisationId, roleId, OperationRecordType)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]uuid.UUID, len(items))
+	for i, item := range items {
+		result[i] = uuid.MustParse(item.TypeTarget[1])
+	}
+
+	return result, nil
+}
+
 //func GetTags(a core.UserRoleAssignment) []string {
 //	return []string{"ASSIGNED_IN_BRANCH", a.BranchId.String()}
 //}
