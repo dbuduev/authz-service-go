@@ -79,7 +79,7 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Logical
 	return result, nil
 }
 
-func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]LogicalRecord, error) {
+func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
 		TableName:              aws.String(r.getTableName()),
@@ -98,14 +98,14 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Logical
 		return nil, err
 	}
 
-	result := make([]LogicalRecord, *output.Count)
+	result := make([]Edge, *output.Count)
 	for i, item := range output.Items {
 		var dto = dto{}
 		err := dynamodbattribute.UnmarshalMap(item, &dto)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = dto.createLogicalRecord()
+		result[i] = dto.createEdge()
 	}
 
 	return result, nil

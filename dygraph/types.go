@@ -27,6 +27,15 @@ type Edge struct {
 	Data           string
 }
 
+type dto struct {
+	GlobalId       string `json:"globalId"`
+	TypeTarget     string `json:"typeTarget"`
+	OrganisationId string `json:"organisationId"`
+	Id             string `json:"id"`
+	Type           string `json:"type"`
+	Data           string `json:"data"`
+}
+
 const separator = "|"
 const nodePrefix = "node_"
 const edgePrefix = "edge_"
@@ -39,6 +48,18 @@ func (node *Node) createNodeDto() *dto {
 		Id:             node.Id.String(),
 		Type:           node.Type,
 		Data:           node.Data,
+	}
+}
+
+func (n dto) createLogicalRecord() LogicalRecord {
+	return LogicalRecord{
+		Node: Node{
+			OrganisationId: uuid.MustParse(n.OrganisationId),
+			Id:             uuid.MustParse(n.Id),
+			Type:           n.Type,
+			Data:           n.Data,
+		},
+		TypeTarget: strings.Split(n.TypeTarget, separator),
 	}
 }
 
@@ -60,4 +81,16 @@ func (r *Edge) createEdgeDto() *dto {
 	}
 
 	return d
+}
+
+func (d *dto) createEdge() Edge {
+	typeTarget := strings.Split(d.TypeTarget, separator)
+	return Edge{
+		OrganisationId: uuid.MustParse(d.OrganisationId),
+		Id:             uuid.MustParse(d.Id),
+		TargetNodeId:   uuid.MustParse(typeTarget[1]),
+		TargetNodeType: d.Type,
+		Tags:           typeTarget[2:],
+		Data:           d.Data,
+	}
 }
