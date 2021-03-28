@@ -16,7 +16,7 @@ type dto struct {
 
 func (n dto) createLogicalRecord() LogicalRecord {
 	return LogicalRecord{
-		LogicalRecordRequest: LogicalRecordRequest{
+		Node: Node{
 			OrganisationId: uuid.MustParse(n.OrganisationId),
 			Id:             uuid.MustParse(n.Id),
 			Type:           n.Type,

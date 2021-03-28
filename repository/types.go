@@ -6,9 +6,9 @@ import (
 )
 
 type GraphDB interface {
-	InsertRecord(node *dygraph.LogicalRecordRequest) error
+	InsertRecord(node *dygraph.Node) error
 	GetNodes(organisationId uuid.UUID, nodeType string) ([]dygraph.LogicalRecord, error)
 	GetEdges(organisationId uuid.UUID, edgeType string) ([]dygraph.LogicalRecord, error)
 	GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]dygraph.LogicalRecord, error)
-	TransactionalInsert(items []dygraph.CreateEdgeRequest) error
+	TransactionalInsert(items []dygraph.Edge) error
 }

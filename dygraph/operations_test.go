@@ -23,7 +23,7 @@ func CreateTestGraphClient() *Dygraph {
 
 func TestGetNodes(t *testing.T) {
 	graphClient := CreateTestGraphClient()
-	node := LogicalRecordRequest{
+	node := Node{
 		OrganisationId: uuid.New(),
 		Id:             uuid.New(),
 		Type:           "ROLE",
@@ -39,7 +39,7 @@ func TestGetNodes(t *testing.T) {
 		t.Fatalf("Failed to get nodes with error %v", err)
 	}
 
-	if !reflect.DeepEqual(node, result[0].LogicalRecordRequest) {
+	if !reflect.DeepEqual(node, result[0].Node) {
 		t.Errorf("Expect %s, got %s", node, result[0])
 	}
 }

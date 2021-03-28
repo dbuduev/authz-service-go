@@ -22,7 +22,7 @@ type Repository struct {
 
 func (r *Repository) AddOperation(op core.Operation) error {
 	fmt.Printf("Adding operation %v\n", op)
-	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.Node{
 		OrganisationId: op.OrganisationId,
 		Id:             op.Id,
 		Type:           OperationRecordType,
@@ -32,7 +32,7 @@ func (r *Repository) AddOperation(op core.Operation) error {
 
 func (r *Repository) AddRole(role core.Role) error {
 	fmt.Printf("Adding role %v\n", role)
-	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.Node{
 		OrganisationId: role.OrganisationId,
 		Id:             role.Id,
 		Type:           RoleRecordType,
@@ -41,7 +41,7 @@ func (r *Repository) AddRole(role core.Role) error {
 }
 
 func (r *Repository) AddBranch(b core.Branch) error {
-	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.Node{
 		OrganisationId: b.OrganisationId,
 		Id:             b.Id,
 		Type:           BranchRecordType,
@@ -50,7 +50,7 @@ func (r *Repository) AddBranch(b core.Branch) error {
 }
 
 func (r *Repository) AddBranchGroup(g core.BranchGroup) error {
-	return r.graphDB.InsertRecord(&dygraph.LogicalRecordRequest{
+	return r.graphDB.InsertRecord(&dygraph.Node{
 		OrganisationId: g.OrganisationId,
 		Id:             g.Id,
 		Type:           BranchGroupRecordType,
@@ -60,7 +60,7 @@ func (r *Repository) AddBranchGroup(g core.BranchGroup) error {
 
 func (r *Repository) AssignOperationToRole(x core.OperationAssignment) error {
 	fmt.Printf("Assigning operation to role %v\n", x)
-	request := []dygraph.CreateEdgeRequest{
+	request := []dygraph.Edge{
 		{
 			OrganisationId: x.OrganisationId,
 			Id:             x.OperationId,
@@ -80,7 +80,7 @@ func (r *Repository) AssignOperationToRole(x core.OperationAssignment) error {
 
 func (r *Repository) AssignBranchToBranchGroup(x core.BranchAssignment) error {
 	fmt.Printf("Assigning branch to branch group %v\n", x)
-	request := []dygraph.CreateEdgeRequest{
+	request := []dygraph.Edge{
 		{
 			OrganisationId: x.OrganisationId,
 			Id:             x.BranchId,
@@ -156,7 +156,7 @@ func (r *Repository) GetAllRoles(organisationId uuid.UUID) ([]core.Role, error) 
 func (r *Repository) AssignRoleToUser(x core.UserRoleAssignment) error {
 	fmt.Printf("Assigning role to a user in a branch %v\n", x)
 	tags := []string{"ASSIGNED_IN_BRANCH", x.BranchId.String()}
-	request := []dygraph.CreateEdgeRequest{
+	request := []dygraph.Edge{
 		{
 			OrganisationId: x.OrganisationId,
 			Id:             x.RoleId,

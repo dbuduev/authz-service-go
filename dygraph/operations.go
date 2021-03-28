@@ -26,7 +26,7 @@ func (r *Dygraph) getTableName() string {
 	return TableName + "-" + r.environment
 }
 
-func (r *Dygraph) InsertRecord(node *LogicalRecordRequest) error {
+func (r *Dygraph) InsertRecord(node *Node) error {
 	dto := node.createNodeDto()
 	av, err := dynamodbattribute.MarshalMap(dto)
 
@@ -111,7 +111,7 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Logical
 	return result, nil
 }
 
-//TODO: Return CreateEdgeRequest instead
+//TODO: Return Edge instead
 func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]LogicalRecord, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		TableName:              aws.String(r.getTableName()),
@@ -143,10 +143,10 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 	return result, nil
 }
 
-func (r *Dygraph) TransactionalInsert(items []CreateEdgeRequest) error {
+func (r *Dygraph) TransactionalInsert(items []Edge) error {
 	transactWriteItems := make([]*dynamodb.TransactWriteItem, len(items))
 	for i := 0; i < len(items); i++ {
-		av, err := dynamodbattribute.MarshalMap(items[i].createNodeDto())
+		av, err := dynamodbattribute.MarshalMap(items[i].createEdgeDto())
 		if err != nil {
 			return err
 		}

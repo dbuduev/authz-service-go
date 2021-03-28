@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type LogicalRecordRequest struct {
+type Node struct {
 	OrganisationId uuid.UUID
 	Id             uuid.UUID
 	Type           string
@@ -14,11 +14,11 @@ type LogicalRecordRequest struct {
 }
 
 type LogicalRecord struct {
-	LogicalRecordRequest
+	Node
 	TypeTarget []string
 }
 
-type CreateEdgeRequest struct {
+type Edge struct {
 	OrganisationId uuid.UUID
 	Id             uuid.UUID
 	TargetNodeId   uuid.UUID
@@ -31,7 +31,7 @@ const separator = "|"
 const nodePrefix = "node_"
 const edgePrefix = "edge_"
 
-func (node *LogicalRecordRequest) createNodeDto() *dto {
+func (node *Node) createNodeDto() *dto {
 	return &dto{
 		GlobalId:       fmt.Sprintf("%s_%s", node.OrganisationId, node.Id),
 		TypeTarget:     nodePrefix + strings.Join([]string{node.Type, node.Id.String()}, separator),
@@ -42,7 +42,7 @@ func (node *LogicalRecordRequest) createNodeDto() *dto {
 	}
 }
 
-func (r *CreateEdgeRequest) createNodeDto() *dto {
+func (r *Edge) createEdgeDto() *dto {
 	d := &dto{
 		GlobalId:       fmt.Sprintf("%s_%s", r.OrganisationId, r.Id),
 		TypeTarget:     edgePrefix + r.TargetNodeType + separator + r.TargetNodeId.String(),
@@ -51,9 +51,9 @@ func (r *CreateEdgeRequest) createNodeDto() *dto {
 		Type:           r.TargetNodeType,
 		Data:           r.Data,
 	}
-	if d.Data == "" {
-		d.Data = r.TargetNodeId.String()
-	}
+	//if d.Data == "" {
+	//	d.Data = r.TargetNodeId.String()
+	//}
 
 	if r.Tags != nil {
 		d.TypeTarget += separator + strings.Join(r.Tags, separator)
