@@ -12,6 +12,7 @@ const (
 	OperationRecordType   = "OP"
 	BranchRecordType      = "BRANCH"
 	BranchGroupRecordType = "BRANCH_GROUP"
+	UserRecordType        = "USER"
 )
 
 type Repository struct {
@@ -145,12 +146,63 @@ func (r *Repository) getAllRoles(organisationId uuid.UUID) ([]core.Role, error) 
 	}
 	result := make([]core.Role, len(nodes))
 	for i, node := range nodes {
-		result[i] = node.ToRole()
+		result[i] = ToRole(node)
 	}
 
 	return result, nil
 }
 
-//func GetTags(a core.UserRoleAssignment) []string {
-//	return []string{"ASSIGNED_IN_BRANCH", a.BranchId.String()}
-//}
+func (r *Repository) AssignRoleToUser(x core.UserRoleAssignment) error {
+	fmt.Printf("Assigning role to a user in a branch %v\n", x)
+	tags := []string{"ASSIGNED_IN_BRANCH", x.BranchId.String()}
+	request := []dygraph.CreateEdgeRequest{
+		{
+			OrganisationId: x.OrganisationId,
+			Id:             x.RoleId,
+			TargetNodeId:   x.UserId,
+			TargetNodeType: UserRecordType,
+			Tags:           tags,
+			Data:           x.BranchId.String(),
+		},
+		{
+			OrganisationId: x.OrganisationId,
+			Id:             x.UserId,
+			TargetNodeId:   x.RoleId,
+			TargetNodeType: RoleRecordType,
+			Tags:           tags,
+			Data:           x.BranchId.String(),
+		},
+	}
+
+	return r.graphDB.TransactionalInsert(request)
+}
+
+func (r *Repository) GetUserRolesAssignments(organisationId, userId uuid.UUID) ([]core.UserRoleAssignment, error) {
+	records, err := r.graphDB.GetNodeEdgesOfType(organisationId, userId, RoleRecordType)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]core.UserRoleAssignment, len(records))
+	for i, record := range records {
+		result[i] = ToUserRoleAssignment(record)
+	}
+
+	return result, nil
+}
+
+func ToRole(r dygraph.LogicalRecord) core.Role {
+	return core.Role{
+		OrganisationId: r.OrganisationId,
+		Id:             r.Id,
+		Name:           r.Data,
+	}
+}
+
+func ToUserRoleAssignment(r dygraph.LogicalRecord) core.UserRoleAssignment {
+	return core.UserRoleAssignment{
+		OrganisationId: r.OrganisationId,
+		RoleId:         uuid.MustParse(r.TypeTarget[1]),
+		UserId:         r.Id,
+		BranchId:       uuid.MustParse(r.Data),
+	}
+}

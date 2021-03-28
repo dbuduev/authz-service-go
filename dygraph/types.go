@@ -2,7 +2,6 @@ package dygraph
 
 import (
 	"fmt"
-	"github.com/dbuduev/authz-service-go/core"
 	"github.com/google/uuid"
 	"strings"
 )
@@ -56,13 +55,9 @@ func (r *CreateEdgeRequest) createNodeDto() *dto {
 		d.Data = r.TargetNodeId.String()
 	}
 
-	return d
-}
-
-func (r LogicalRecord) ToRole() core.Role {
-	return core.Role{
-		OrganisationId: r.OrganisationId,
-		Id:             r.Id,
-		Name:           r.Data,
+	if r.Tags != nil {
+		d.TypeTarget += separator + strings.Join(r.Tags, separator)
 	}
+
+	return d
 }

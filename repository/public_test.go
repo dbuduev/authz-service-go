@@ -99,13 +99,30 @@ func (a BranchAssignment) To(id uuid.UUID) core.BranchAssignment {
 	}
 }
 
+type UserRoleAssignment struct {
+	OrganisationId byte
+	RoleId         byte
+	UserId         byte
+	BranchId       byte
+}
+
+func (a UserRoleAssignment) To(id uuid.UUID) core.UserRoleAssignment {
+	return core.UserRoleAssignment{
+		OrganisationId: GenId(id, a.OrganisationId),
+		RoleId:         GenId(id, a.RoleId),
+		UserId:         GenId(id, a.UserId),
+		BranchId:       GenId(id, a.BranchId),
+	}
+}
+
 type testConfig struct {
-	roles             []Role
-	operations        []Operation
-	assignments       []OperationAssignment
-	branches          []Branch
-	branchGroups      []BranchGroup
-	branchAssignments []BranchAssignment
+	roles               []Role
+	operations          []Operation
+	assignments         []OperationAssignment
+	branches            []Branch
+	branchGroups        []BranchGroup
+	branchAssignments   []BranchAssignment
+	userRoleAssignments []UserRoleAssignment
 }
 
 func setUpTest(repository Repository, config testConfig, id uuid.UUID) {
@@ -141,8 +158,14 @@ func setUpTest(repository Repository, config testConfig, id uuid.UUID) {
 		}
 	}
 
-	for _, b := range config.branchAssignments {
-		if err := repository.AssignBranchToBranchGroup(b.To(id)); err != nil {
+	for _, x := range config.branchAssignments {
+		if err := repository.AssignBranchToBranchGroup(x.To(id)); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, x := range config.userRoleAssignments {
+		if err := repository.AssignRoleToUser(x.To(id)); err != nil {
 			panic(err)
 		}
 	}
@@ -214,12 +237,20 @@ func TestRepository_GetRolesByOperation(t *testing.T) {
 			for i, roleId := range tt.want {
 				want[i] = GenId(tt.id, roleId)
 			}
+			sort.Slice(want, func(i, j int) bool {
+				return want[i][0] < want[j][0] // sort UUIDs just by the first byte.
+			})
+			sort.Slice(got, func(i, j int) bool {
+				return got[i][0] < got[j][0]
+			})
+
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("GetRolesByOperation() got = %v, want %v", got, want)
 			}
 		})
 	}
 }
+
 func TestRepository_GetOperationsByRole(t *testing.T) {
 	repository := CreateTestRepository()
 
@@ -286,6 +317,13 @@ func TestRepository_GetOperationsByRole(t *testing.T) {
 			for i, roleId := range tt.want {
 				want[i] = GenId(tt.id, roleId)
 			}
+			sort.Slice(want, func(i, j int) bool {
+				return want[i][0] < want[j][0] // sort UUIDs just by the first byte.
+			})
+			sort.Slice(got, func(i, j int) bool {
+				return got[i][0] < got[j][0]
+			})
+
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("GetRolesByOperation() got = %v, want %v", got, want)
 			}
@@ -425,6 +463,116 @@ func TestRepository_GetBranchesByBranchGroup(t *testing.T) {
 			})
 			sort.Slice(got, func(i, j int) bool {
 				return got[i][0] < got[j][0]
+			})
+
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("GetBranchesByBranchGroup() got = %v, want %v", got, want)
+			}
+		})
+	}
+}
+func TestRepository_GetUserRolesAssignments(t *testing.T) {
+	repository := CreateTestRepository()
+
+	type args struct {
+		organisationId byte
+		userId         byte
+	}
+
+	tests := []struct {
+		id      uuid.UUID
+		name    string
+		config  testConfig
+		args    args
+		want    []UserRoleAssignment
+		wantErr bool
+	}{
+		{
+			name:    "Empty",
+			id:      uuid.New(),
+			config:  testConfig{},
+			want:    []UserRoleAssignment{},
+			wantErr: false,
+		},
+		{
+			name: "Single branch",
+			id:   uuid.New(),
+			config: testConfig{
+				branches:            []Branch{{1, 3, "A"}},
+				roles:               []Role{{1, 3, "Admin"}, {1, 4, "PT"}},
+				userRoleAssignments: []UserRoleAssignment{{1, 3, 1, 3}, {1, 4, 1, 3}},
+			},
+			args: args{
+				organisationId: 1,
+				userId:         1,
+			},
+			want:    []UserRoleAssignment{{1, 3, 1, 3}, {1, 4, 1, 3}},
+			wantErr: false,
+		},
+		{
+			name: "Two branches",
+			id:   uuid.New(),
+			config: testConfig{
+				branches:            []Branch{{1, 3, "A"}, {1, 4, "B"}},
+				roles:               []Role{{1, 13, "Admin"}, {1, 14, "PT"}},
+				userRoleAssignments: []UserRoleAssignment{{1, 13, 1, 3}, {1, 14, 1, 4}},
+			},
+			args: args{
+				organisationId: 1,
+				userId:         1,
+			},
+			want:    []UserRoleAssignment{{1, 13, 1, 3}, {1, 14, 1, 4}},
+			wantErr: false,
+		},
+		{
+			name: "Two users",
+			id:   uuid.New(),
+			config: testConfig{
+				branches:            []Branch{{1, 3, "A"}, {1, 4, "B"}},
+				roles:               []Role{{1, 13, "Admin"}, {1, 14, "PT"}},
+				userRoleAssignments: []UserRoleAssignment{{1, 13, 1, 3}, {1, 14, 2, 4}},
+			},
+			args: args{
+				organisationId: 1,
+				userId:         1,
+			},
+			want:    []UserRoleAssignment{{1, 13, 1, 3}},
+			wantErr: false,
+		},
+		{
+			name: "Branch groups case",
+			id:   uuid.New(),
+			config: testConfig{
+				branches:            []Branch{{1, 3, "A"}, {1, 4, "B"}},
+				roles:               []Role{{1, 13, "Admin"}, {1, 14, "PT"}},
+				branchGroups:        []BranchGroup{{1, 22, "X"}, {1, 25, "Y"}},
+				userRoleAssignments: []UserRoleAssignment{{1, 13, 1, 3}, {1, 14, 1, 22}},
+			},
+			args: args{
+				organisationId: 1,
+				userId:         1,
+			},
+			want:    []UserRoleAssignment{{1, 13, 1, 3}, {1, 14, 1, 22}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setUpTest(repository, tt.config, tt.id)
+			got, err := repository.GetUserRolesAssignments(GenId(tt.id, tt.args.organisationId), GenId(tt.id, tt.args.userId))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetBranchesByBranchGroup() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			want := make([]core.UserRoleAssignment, len(tt.want))
+			for i, item := range tt.want {
+				want[i] = item.To(tt.id)
+			}
+			sort.Slice(want, func(i, j int) bool {
+				return want[i].RoleId[0] < want[j].RoleId[0] // sort UUIDs just by the first byte.
+			})
+			sort.Slice(got, func(i, j int) bool {
+				return got[i].RoleId[0] < got[j].RoleId[0]
 			})
 
 			if !reflect.DeepEqual(got, want) {
