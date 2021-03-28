@@ -89,7 +89,7 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Logical
 				S: aws.String(organisationId.String()),
 			},
 			":type": {
-				S: aws.String(nodePrefix + edgeType),
+				S: aws.String(edgePrefix + edgeType),
 			},
 		},
 	})

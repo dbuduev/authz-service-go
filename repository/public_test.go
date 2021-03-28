@@ -1,10 +1,13 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/dbuduev/authz-service-go/core"
 	"github.com/dbuduev/authz-service-go/dygraph"
+	"github.com/dbuduev/authz-service-go/sphinx"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"reflect"
 	"sort"
@@ -331,7 +334,7 @@ func TestRepository_GetOperationsByRole(t *testing.T) {
 	}
 }
 
-func TestRepository_getAllRoles(t *testing.T) {
+func TestRepository_GetAllRoles(t *testing.T) {
 	repository := CreateTestRepository()
 
 	type args struct {
@@ -380,7 +383,7 @@ func TestRepository_getAllRoles(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			setUpTest(repository, tt.config, tt.id)
 			organisationId := GenId(tt.id, tt.args.organisationId)
-			got, err := repository.getAllRoles(organisationId)
+			got, err := repository.GetAllRoles(organisationId)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getAllRoles() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -581,6 +584,86 @@ func TestRepository_GetUserRolesAssignments(t *testing.T) {
 		})
 	}
 }
+
+func TestRepository_GetHierarchy(t *testing.T) {
+	trans := cmp.Transformer("Sort", func(in []uuid.UUID) []uuid.UUID {
+		out := append([]uuid.UUID(nil), in...) // Copy input to avoid mutating it
+		sort.Slice(out, func(i, j int) bool {
+			for k := 0; k < len(out[i]); k++ {
+				if out[i][k] != out[j][k] {
+					return out[i][k] < out[j][k]
+				}
+			}
+			return false
+		})
+		return out
+	})
+
+	repository := CreateTestRepository()
+
+	type args struct {
+		organisationId byte
+	}
+
+	tests := []struct {
+		id      uuid.UUID
+		name    string
+		config  testConfig
+		args    args
+		want    map[byte][]byte
+		wantErr bool
+	}{
+		{
+			name:    "Empty",
+			id:      uuid.New(),
+			config:  testConfig{},
+			want:    make(map[byte][]byte),
+			wantErr: false,
+		},
+		{
+			name: "Simple case",
+			id:   uuid.New(),
+			config: testConfig{
+				branches:          []Branch{{1, 3, "A"}, {1, 4, "B"}},
+				branchGroups:      []BranchGroup{{1, 2, "X"}, {1, 5, "Y"}},
+				branchAssignments: []BranchAssignment{{1, 3, 2}, {1, 3, 5}, {1, 4, 5}},
+			},
+			args: args{
+				organisationId: 1,
+			},
+			want: map[byte][]byte{
+				2: {3},
+				5: {3, 4},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setUpTest(repository, tt.config, tt.id)
+			got, err := repository.GetHierarchy(GenId(tt.id, tt.args.organisationId))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetHierarchy() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			want := make(sphinx.BranchGroupContent, len(tt.want))
+			for k, v := range tt.want {
+				branches := make([]uuid.UUID, len(v))
+				for i, b := range v {
+					branches[i] = GenId(tt.id, b)
+				}
+				want[GenId(tt.id, k)] = branches
+			}
+			fmt.Println(want)
+			fmt.Println(got)
+			if diff := cmp.Diff(want, got, trans); diff != "" {
+				t.Errorf("GetHierarchy() diff = %v", diff)
+			}
+		})
+	}
+
+}
+
 func GetClient() *dynamodb.DynamoDB {
 	// Create DynamoDB client
 	s := session.Must(session.NewSessionWithOptions(session.Options{

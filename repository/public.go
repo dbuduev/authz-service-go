@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dbuduev/authz-service-go/core"
 	"github.com/dbuduev/authz-service-go/dygraph"
+	"github.com/dbuduev/authz-service-go/sphinx"
 	"github.com/google/uuid"
 )
 
@@ -139,7 +140,7 @@ func (r *Repository) GetOperationsByRole(organisationId, roleId uuid.UUID) ([]uu
 	return result, nil
 }
 
-func (r *Repository) getAllRoles(organisationId uuid.UUID) ([]core.Role, error) {
+func (r *Repository) GetAllRoles(organisationId uuid.UUID) ([]core.Role, error) {
 	nodes, err := r.graphDB.GetNodes(organisationId, RoleRecordType)
 	if err != nil {
 		return nil, err
@@ -187,6 +188,20 @@ func (r *Repository) GetUserRolesAssignments(organisationId, userId uuid.UUID) (
 		result[i] = ToUserRoleAssignment(record)
 	}
 
+	return result, nil
+}
+
+func (r *Repository) GetHierarchy(organisationId uuid.UUID) (sphinx.BranchGroupContent, error) {
+	links, err := r.graphDB.GetEdges(organisationId, BranchGroupRecordType)
+	if err != nil {
+		return nil, err
+	}
+	result := make(sphinx.BranchGroupContent, len(links))
+
+	for _, link := range links {
+		branchGroupId := uuid.MustParse(link.TypeTarget[1])
+		result[branchGroupId] = append(result[branchGroupId], link.Id)
+	}
 	return result, nil
 }
 
