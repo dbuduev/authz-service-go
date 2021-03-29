@@ -106,7 +106,7 @@ func (r *Repository) GetBranchesByBranchGroup(organisationId, branchGroupId uuid
 
 	result := make([]uuid.UUID, len(items))
 	for i, item := range items {
-		result[i] = uuid.MustParse(item.TypeTarget[1])
+		result[i] = item.TargetNodeId
 	}
 
 	return result, nil
@@ -120,7 +120,7 @@ func (r *Repository) GetRolesByOperation(organisationId, opId uuid.UUID) ([]uuid
 
 	result := make([]uuid.UUID, len(items))
 	for i, item := range items {
-		result[i] = uuid.MustParse(item.TypeTarget[1])
+		result[i] = item.TargetNodeId
 	}
 
 	return result, nil
@@ -134,7 +134,7 @@ func (r *Repository) GetOperationsByRole(organisationId, roleId uuid.UUID) ([]uu
 
 	result := make([]uuid.UUID, len(items))
 	for i, item := range items {
-		result[i] = uuid.MustParse(item.TypeTarget[1])
+		result[i] = item.TargetNodeId
 	}
 
 	return result, nil
@@ -199,7 +199,7 @@ func (r *Repository) GetHierarchy(organisationId uuid.UUID) (sphinx.BranchGroupC
 	result := make(sphinx.BranchGroupContent, len(links))
 
 	for _, link := range links {
-		branchGroupId := uuid.MustParse(link.TypeTarget[1])
+		branchGroupId := link.TargetNodeId
 		result[branchGroupId] = append(result[branchGroupId], link.Id)
 	}
 	return result, nil
@@ -213,10 +213,10 @@ func ToRole(r dygraph.LogicalRecord) core.Role {
 	}
 }
 
-func ToUserRoleAssignment(r dygraph.LogicalRecord) core.UserRoleAssignment {
+func ToUserRoleAssignment(r dygraph.Edge) core.UserRoleAssignment {
 	return core.UserRoleAssignment{
 		OrganisationId: r.OrganisationId,
-		RoleId:         uuid.MustParse(r.TypeTarget[1]),
+		RoleId:         r.TargetNodeId,
 		UserId:         r.Id,
 		BranchId:       uuid.MustParse(r.Data),
 	}

@@ -112,7 +112,7 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 }
 
 //TODO: Return Edge instead
-func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]LogicalRecord, error) {
+func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]Edge, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		TableName:              aws.String(r.getTableName()),
 		KeyConditionExpression: aws.String("globalId = :globalId and begins_with(typeTarget, :type)"),
@@ -130,14 +130,14 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 		return nil, err
 	}
 
-	result := make([]LogicalRecord, *output.Count)
+	result := make([]Edge, *output.Count)
 	for i, item := range output.Items {
 		var dto = dto{}
 		err := dynamodbattribute.UnmarshalMap(item, &dto)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = dto.createLogicalRecord()
+		result[i] = dto.createEdge()
 	}
 
 	return result, nil
