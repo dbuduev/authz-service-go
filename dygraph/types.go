@@ -72,11 +72,8 @@ func (r *Edge) createEdgeDto() *dto {
 		Type:           r.TargetNodeType,
 		Data:           r.Data,
 	}
-	//if d.Data == "" {
-	//	d.Data = r.TargetNodeId.String()
-	//}
 
-	if r.Tags != nil {
+	if r.Tags != nil && len(r.Tags) != 0 {
 		d.TypeTarget += separator + strings.Join(r.Tags, separator)
 	}
 
@@ -85,12 +82,15 @@ func (r *Edge) createEdgeDto() *dto {
 
 func (d *dto) createEdge() Edge {
 	typeTarget := strings.Split(d.TypeTarget, separator)
-	return Edge{
+	edge := Edge{
 		OrganisationId: uuid.MustParse(d.OrganisationId),
 		Id:             uuid.MustParse(d.Id),
 		TargetNodeId:   uuid.MustParse(typeTarget[1]),
 		TargetNodeType: d.Type,
-		Tags:           typeTarget[2:],
 		Data:           d.Data,
 	}
+	if len(typeTarget) > 2 {
+		edge.Tags = typeTarget[2:]
+	}
+	return edge
 }
