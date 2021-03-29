@@ -30,3 +30,26 @@ func Test_dto_createEdge(t *testing.T) {
 		})
 	}
 }
+
+func Test_dto_createNode(t *testing.T) {
+	tests := []struct {
+		name string
+		want Node
+	}{
+		{"node creation test", Node{
+			OrganisationId: uuid.New(),
+			Id:             uuid.New(),
+			Type:           "OP",
+			Data:           "manage-staff",
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := tt.want.createNodeDto()
+			got := d.createNode()
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("createNode() diff %v", diff)
+			}
+		})
+	}
+}

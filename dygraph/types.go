@@ -46,7 +46,7 @@ func (node *Node) createNodeDto() *dto {
 	}
 }
 
-func (d dto) createNode() Node {
+func (d *dto) createNode() Node {
 	return Node{
 		OrganisationId: uuid.MustParse(d.OrganisationId),
 		Id:             uuid.MustParse(d.Id),
