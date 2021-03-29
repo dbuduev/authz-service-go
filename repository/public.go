@@ -205,7 +205,7 @@ func (r *Repository) GetHierarchy(organisationId uuid.UUID) (sphinx.BranchGroupC
 	return result, nil
 }
 
-func ToRole(r dygraph.LogicalRecord) core.Role {
+func ToRole(r dygraph.Node) core.Role {
 	return core.Role{
 		OrganisationId: r.OrganisationId,
 		Id:             r.Id,

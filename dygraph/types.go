@@ -13,11 +13,6 @@ type Node struct {
 	Data           string
 }
 
-type LogicalRecord struct {
-	Node
-	TypeTarget []string
-}
-
 type Edge struct {
 	OrganisationId uuid.UUID
 	Id             uuid.UUID
@@ -51,15 +46,12 @@ func (node *Node) createNodeDto() *dto {
 	}
 }
 
-func (n dto) createLogicalRecord() LogicalRecord {
-	return LogicalRecord{
-		Node: Node{
-			OrganisationId: uuid.MustParse(n.OrganisationId),
-			Id:             uuid.MustParse(n.Id),
-			Type:           n.Type,
-			Data:           n.Data,
-		},
-		TypeTarget: strings.Split(n.TypeTarget, separator),
+func (d dto) createNode() Node {
+	return Node{
+		OrganisationId: uuid.MustParse(d.OrganisationId),
+		Id:             uuid.MustParse(d.Id),
+		Type:           d.Type,
+		Data:           d.Data,
 	}
 }
 

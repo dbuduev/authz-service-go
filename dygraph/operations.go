@@ -47,7 +47,7 @@ func (r *Dygraph) InsertRecord(node *Node) error {
 	return nil
 }
 
-func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]LogicalRecord, error) {
+func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
 		TableName:              aws.String(r.getTableName()),
@@ -66,14 +66,14 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Logical
 		return nil, err
 	}
 
-	result := make([]LogicalRecord, *output.Count)
+	result := make([]Node, *output.Count)
 	for i, item := range output.Items {
 		var nodeDto = dto{}
 		err := dynamodbattribute.UnmarshalMap(item, &nodeDto)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = nodeDto.createLogicalRecord()
+		result[i] = nodeDto.createNode()
 	}
 
 	return result, nil

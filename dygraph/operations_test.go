@@ -39,7 +39,7 @@ func TestGetNodes(t *testing.T) {
 		t.Fatalf("Failed to get nodes with error %v", err)
 	}
 
-	if !reflect.DeepEqual(node, result[0].Node) {
+	if !reflect.DeepEqual(node, result[0]) {
 		t.Errorf("Expect %s, got %s", node, result[0])
 	}
 }
