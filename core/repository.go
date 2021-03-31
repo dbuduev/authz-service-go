@@ -16,6 +16,7 @@ type Repository interface {
 	GetRolesByOperation(organisationId, opId uuid.UUID) ([]uuid.UUID, error)
 	GetOperationsByRole(organisationId, roleId uuid.UUID) ([]uuid.UUID, error)
 	GetAllRoles(organisationId uuid.UUID) ([]Role, error)
+	GetAllOperations(organisationId uuid.UUID) ([]Operation, error)
 	AssignRoleToUser(x UserRoleAssignment) error
 	GetUserRolesAssignments(organisationId, userId uuid.UUID) ([]UserRoleAssignment, error)
 	GetHierarchy(organisationId uuid.UUID) (sphinx.BranchGroupContent, error)

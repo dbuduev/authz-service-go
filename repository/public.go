@@ -153,6 +153,19 @@ func (r *Repository) GetAllRoles(organisationId uuid.UUID) ([]core.Role, error) 
 	return result, nil
 }
 
+func (r *Repository) GetAllOperations(organisationId uuid.UUID) ([]core.Operation, error) {
+	nodes, err := r.graphDB.GetNodes(organisationId, OperationRecordType)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]core.Operation, len(nodes))
+	for i, node := range nodes {
+		result[i] = ToOperation(node)
+	}
+
+	return result, nil
+}
+
 func (r *Repository) AssignRoleToUser(x core.UserRoleAssignment) error {
 	fmt.Printf("Assigning role to a user in a branch %v\n", x)
 	tags := []string{"ASSIGNED_IN_BRANCH", x.BranchId.String()}
@@ -207,6 +220,14 @@ func (r *Repository) GetHierarchy(organisationId uuid.UUID) (sphinx.BranchGroupC
 
 func ToRole(r dygraph.Node) core.Role {
 	return core.Role{
+		OrganisationId: r.OrganisationId,
+		Id:             r.Id,
+		Name:           r.Data,
+	}
+}
+
+func ToOperation(r dygraph.Node) core.Operation {
+	return core.Operation{
 		OrganisationId: r.OrganisationId,
 		Id:             r.Id,
 		Name:           r.Data,
