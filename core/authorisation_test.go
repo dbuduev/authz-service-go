@@ -98,7 +98,7 @@ func TestAuthorisationCore_FindOpByName(t *testing.T) {
 		name             string
 		getAllOperations func(orgId uuid.UUID) ([]Operation, error)
 		args             args
-		want             func(orgId uuid.UUID) Operation
+		want             func(orgId uuid.UUID) *Operation
 	}{
 		{
 			name: "There's a match",
@@ -109,12 +109,25 @@ func TestAuthorisationCore_FindOpByName(t *testing.T) {
 				organisationId: uuid.New(),
 				name:           "view-staff",
 			},
-			want: func(orgId uuid.UUID) Operation {
-				return Operation{
+			want: func(orgId uuid.UUID) *Operation {
+				return &Operation{
 					OrganisationId: orgId,
 					Id:             GenId(orgId, 2),
 					Name:           "view-staff",
 				}
+			},
+		},
+		{
+			name: "There's no match",
+			getAllOperations: func(orgId uuid.UUID) ([]Operation, error) {
+				return []Operation{{orgId, GenId(orgId, 1), "manage-staff"}, {orgId, GenId(orgId, 2), "view-staff"}}, nil
+			},
+			args: args{
+				organisationId: uuid.New(),
+				name:           "no-such-thing",
+			},
+			want: func(orgId uuid.UUID) *Operation {
+				return nil
 			},
 		},
 	}
@@ -122,7 +135,12 @@ func TestAuthorisationCore_FindOpByName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repository.getAllOperations = tt.getAllOperations
 			want := tt.want(tt.args.organisationId)
-			if got := ac.FindOpByName(tt.args.organisationId, tt.args.name); got == nil || !reflect.DeepEqual(*got, want) {
+			got := ac.FindOpByName(tt.args.organisationId, tt.args.name)
+			if want == nil {
+				if got != nil {
+					t.Errorf("FindOpByName() = %v, want nil", *got)
+				}
+			} else if got == nil || !reflect.DeepEqual(*got, *want) {
 				t.Errorf("FindOpByName() = %v, want %v", got, want)
 			}
 		})

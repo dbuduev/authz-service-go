@@ -2,7 +2,6 @@ package core
 
 import (
 	"github.com/google/uuid"
-	"sort"
 )
 
 type AuthorisationCore struct {
@@ -19,15 +18,13 @@ func (ac *AuthorisationCore) FindOpByName(organisationId uuid.UUID, name string)
 		panic(err)
 	}
 
-	index := sort.Search(len(ops), func(i int) bool {
-		return ops[i].Name == name
-	})
-
-	if index > 0 {
-		return &ops[index]
-	} else {
-		return nil
+	for i := 0; i < len(ops); i++ {
+		if ops[i].Name == name {
+			return &ops[i]
+		}
 	}
+
+	return nil
 }
 
 func (ac *AuthorisationCore) WhereAuthorised(organisationId, userId uuid.UUID, operation string) []UserRoleAssignment {
