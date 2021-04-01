@@ -13,7 +13,7 @@ func CreateAuthorisationCore(repository Repository) AuthorisationCore {
 	return AuthorisationCore{repository: repository}
 }
 
-func (ac *AuthorisationCore) findOpByName(organisationId uuid.UUID, name string) *Operation {
+func (ac *AuthorisationCore) FindOpByName(organisationId uuid.UUID, name string) *Operation {
 	ops, err := ac.repository.GetAllOperations(organisationId)
 	if err != nil {
 		panic(err)
@@ -33,7 +33,7 @@ func (ac *AuthorisationCore) findOpByName(organisationId uuid.UUID, name string)
 func (ac *AuthorisationCore) WhereAuthorised(organisationId, userId uuid.UUID, operation string) []UserRoleAssignment {
 	r := ac.repository
 
-	op := ac.findOpByName(organisationId, operation)
+	op := ac.FindOpByName(organisationId, operation)
 	if op == nil {
 		panic("operation not found " + operation)
 	}
@@ -44,4 +44,6 @@ func (ac *AuthorisationCore) WhereAuthorised(organisationId, userId uuid.UUID, o
 	if len(roles) == 0 {
 		return nil
 	}
+
+	panic("not implemented")
 }
