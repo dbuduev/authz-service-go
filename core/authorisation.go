@@ -29,15 +29,11 @@ func (ac *AuthorisationCore) FindOpByName(organisationId uuid.UUID, name string)
 }
 
 // WhereAuthorised returns a slice of branch or branch group ids where the operation is authorised for the user.
-func (ac *AuthorisationCore) WhereAuthorised(organisationId, userId uuid.UUID, operation string) []uuid.UUID {
+func (ac *AuthorisationCore) WhereAuthorised(organisationId, userId, opId uuid.UUID) []uuid.UUID {
 	r := ac.repository
 
-	op := ac.FindOpByName(organisationId, operation)
-	if op == nil {
-		panic("operation not found " + operation)
-	}
 	// 1. op -> [role]
-	roles, err := r.GetRolesByOperation(organisationId, op.Id)
+	roles, err := r.GetRolesByOperation(organisationId, opId)
 	if err != nil {
 		panic(err)
 	}

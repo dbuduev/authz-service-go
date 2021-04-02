@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/dbuduev/authz-service-go/core"
@@ -654,8 +653,6 @@ func TestRepository_GetHierarchy(t *testing.T) {
 				}
 				want[GenId(tt.id, k)] = branches
 			}
-			fmt.Println(want)
-			fmt.Println(got)
 			if diff := cmp.Diff(want, got, trans); diff != "" {
 				t.Errorf("GetHierarchy() diff = %v", diff)
 			}

@@ -2,8 +2,10 @@ package core
 
 import (
 	"github.com/dbuduev/authz-service-go/sphinx"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -142,6 +144,147 @@ func TestAuthorisationCore_FindOpByName(t *testing.T) {
 				}
 			} else if got == nil || !reflect.DeepEqual(*got, *want) {
 				t.Errorf("FindOpByName() = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestAuthorisationCore_WhereAuthorised(t *testing.T) {
+	trans := cmp.Transformer("Sort", func(in []uuid.UUID) []uuid.UUID {
+		out := append([]uuid.UUID(nil), in...) // Copy input to avoid mutating it
+		sort.Slice(out, func(i, j int) bool {
+			for k := 0; k < len(out[i]); k++ {
+				if out[i][k] != out[j][k] {
+					return out[i][k] < out[j][k]
+				}
+			}
+			return false
+		})
+		return out
+	})
+
+	repository := testRepository{}
+	ac := &AuthorisationCore{
+		repository: &repository,
+	}
+
+	type args struct {
+		organisationId uuid.UUID
+		userId         byte
+		opId           byte
+	}
+	tests := []struct {
+		name                    string
+		args                    args
+		getRolesByOperation     func(orgId, opId uuid.UUID) ([]uuid.UUID, error)
+		getUserRolesAssignments func(orgId, userId uuid.UUID) ([]UserRoleAssignment, error)
+		want                    func(orgId uuid.UUID) []uuid.UUID
+	}{
+		{
+			name: "No assignments",
+			args: args{
+				organisationId: uuid.New(),
+				userId:         1,
+				opId:           2,
+			},
+			getRolesByOperation:     func(_, _ uuid.UUID) ([]uuid.UUID, error) { return nil, nil },
+			getUserRolesAssignments: func(_, _ uuid.UUID) ([]UserRoleAssignment, error) { return nil, nil },
+			want:                    func(_ uuid.UUID) []uuid.UUID { return nil },
+		},
+		{
+			name: "A single assignment",
+			args: args{
+				organisationId: uuid.New(),
+				userId:         1,
+				opId:           2,
+			},
+			getRolesByOperation: func(orgId, _ uuid.UUID) ([]uuid.UUID, error) {
+				return []uuid.UUID{GenId(orgId, 1), GenId(orgId, 2)}, nil
+			},
+			getUserRolesAssignments: func(orgId, userId uuid.UUID) ([]UserRoleAssignment, error) {
+				return []UserRoleAssignment{
+					{
+						OrganisationId: orgId,
+						RoleId:         GenId(orgId, 2),
+						UserId:         userId,
+						BranchId:       GenId(orgId, 10),
+					},
+				}, nil
+			},
+			want: func(orgId uuid.UUID) []uuid.UUID {
+				return []uuid.UUID{GenId(orgId, 10)}
+			},
+		},
+		{
+			name: "Two assignments for the same branch",
+			args: args{
+				organisationId: uuid.New(),
+				userId:         1,
+				opId:           2,
+			},
+			getRolesByOperation: func(orgId, _ uuid.UUID) ([]uuid.UUID, error) {
+				return []uuid.UUID{GenId(orgId, 1), GenId(orgId, 2)}, nil
+			},
+			getUserRolesAssignments: func(orgId, userId uuid.UUID) ([]UserRoleAssignment, error) {
+				return []UserRoleAssignment{
+					{
+						OrganisationId: orgId,
+						RoleId:         GenId(orgId, 2),
+						UserId:         userId,
+						BranchId:       GenId(orgId, 10),
+					},
+					{
+						OrganisationId: orgId,
+						RoleId:         GenId(orgId, 1),
+						UserId:         userId,
+						BranchId:       GenId(orgId, 10),
+					},
+				}, nil
+			},
+			want: func(orgId uuid.UUID) []uuid.UUID {
+				return []uuid.UUID{GenId(orgId, 10)}
+			},
+		},
+		{
+			name: "Two assignments",
+			args: args{
+				organisationId: uuid.New(),
+				userId:         1,
+				opId:           2,
+			},
+			getRolesByOperation: func(orgId, _ uuid.UUID) ([]uuid.UUID, error) {
+				return []uuid.UUID{GenId(orgId, 1), GenId(orgId, 2)}, nil
+			},
+			getUserRolesAssignments: func(orgId, userId uuid.UUID) ([]UserRoleAssignment, error) {
+				return []UserRoleAssignment{
+					{
+						OrganisationId: orgId,
+						RoleId:         GenId(orgId, 2),
+						UserId:         userId,
+						BranchId:       GenId(orgId, 10),
+					},
+					{
+						OrganisationId: orgId,
+						RoleId:         GenId(orgId, 1),
+						UserId:         userId,
+						BranchId:       GenId(orgId, 11),
+					},
+				}, nil
+			},
+			want: func(orgId uuid.UUID) []uuid.UUID {
+				return []uuid.UUID{GenId(orgId, 10), GenId(orgId, 11)}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repository.getRolesByOperation = tt.getRolesByOperation
+			repository.getUserRolesAssignments = tt.getUserRolesAssignments
+
+			want := tt.want(tt.args.organisationId)
+			got := ac.WhereAuthorised(tt.args.organisationId, GenId(tt.args.organisationId, tt.args.userId), GenId(tt.args.organisationId, tt.args.opId))
+			if diff := cmp.Diff(want, got, trans); diff != "" {
+				t.Errorf("WhereAuthorised() diff  %v", diff)
 			}
 		})
 	}
