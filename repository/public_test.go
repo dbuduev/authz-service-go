@@ -675,5 +675,5 @@ func CreateTestGraphClient() *dygraph.Dygraph {
 }
 
 func CreateTestRepository() *Repository {
-	return createRepository(CreateTestGraphClient())
+	return CreateRepository(CreateTestGraphClient())
 }

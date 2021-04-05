@@ -20,7 +20,7 @@ type Repository struct {
 	graphDB GraphDB
 }
 
-func createRepository(graphDB GraphDB) *Repository {
+func CreateRepository(graphDB GraphDB) *Repository {
 	return &Repository{graphDB: graphDB}
 }
 
