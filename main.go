@@ -1,16 +1,11 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/dbuduev/authz-service-go/dygraph"
 	resource "github.com/dbuduev/authz-service-go/http"
 	"github.com/dbuduev/authz-service-go/repository"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
 )
@@ -26,37 +21,16 @@ func GetClient() *dynamodb.DynamoDB {
 
 func main() {
 	repo := repository.CreateRepository(dygraph.CreateGraphClient(GetClient(), "test"))
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
 
-	r.Route(fmt.Sprintf("/{%s}", resource.OrganisationIdKey), func(r chi.Router) {
-		r.Use(organisationContext)
-		r.Route("/branch", resource.CreateBranchResourceRouter(repo))
-		r.Route("/branch-group", resource.CreateBranchGroupResourceRouter(repo))
-	})
 	server := http.Server{
 		Addr:         ":8080",
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 90 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      r,
+		Handler:      resource.ConfigureHandler(repo),
 	}
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		panic(err)
 	}
-}
-
-func organisationContext(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		organisationId, err := uuid.Parse(chi.URLParam(r, resource.OrganisationIdKey))
-		if err != nil {
-			http.Error(w, "Can't parse organisation id, must be UUID.", http.StatusBadRequest)
-			return
-		}
-		ctx := context.WithValue(r.Context(), resource.OrganisationIdKey, organisationId)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
 }
