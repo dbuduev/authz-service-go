@@ -33,7 +33,7 @@ func main() {
 
 	r.Route(fmt.Sprintf("/{%s}", resource.OrganisationIdKey), func(r chi.Router) {
 		r.Use(organisationContext)
-		r.Route("/branch", resource.CreateBranchResource(repo).Router)
+		r.Route("/branch", resource.CreateBranchResourceRouter(repo))
 		r.Get("/branch-group", func(writer http.ResponseWriter, request *http.Request) {
 			ctx := request.Context()
 			organisationId, ok := ctx.Value(resource.OrganisationIdKey).(uuid.UUID)
