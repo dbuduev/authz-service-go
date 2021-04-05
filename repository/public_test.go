@@ -127,7 +127,7 @@ type testConfig struct {
 	userRoleAssignments []UserRoleAssignment
 }
 
-func setUpTest(repository Repository, config testConfig, id uuid.UUID) {
+func setUpTest(repository *Repository, config testConfig, id uuid.UUID) {
 	for _, r := range config.roles {
 		err := repository.AddRole(r.To(id))
 		if err != nil {
@@ -674,8 +674,6 @@ func CreateTestGraphClient() *dygraph.Dygraph {
 	return dygraph.CreateGraphClient(GetClient(), "test")
 }
 
-func CreateTestRepository() Repository {
-	return Repository{
-		graphDB: CreateTestGraphClient(),
-	}
+func CreateTestRepository() *Repository {
+	return createRepository(CreateTestGraphClient())
 }

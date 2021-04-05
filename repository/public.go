@@ -20,6 +20,10 @@ type Repository struct {
 	graphDB GraphDB
 }
 
+func createRepository(graphDB GraphDB) *Repository {
+	return &Repository{graphDB: graphDB}
+}
+
 func (r *Repository) AddOperation(op core.Operation) error {
 	fmt.Printf("Adding operation %v\n", op)
 	return r.graphDB.InsertRecord(&dygraph.Node{
