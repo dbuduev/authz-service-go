@@ -111,7 +111,6 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 	return result, nil
 }
 
-//TODO: Return Edge instead
 func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]Edge, error) {
 	output, err := r.client.Query(&dynamodb.QueryInput{
 		TableName:              aws.String(r.getTableName()),
