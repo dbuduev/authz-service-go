@@ -34,15 +34,7 @@ func main() {
 	r.Route(fmt.Sprintf("/{%s}", resource.OrganisationIdKey), func(r chi.Router) {
 		r.Use(organisationContext)
 		r.Route("/branch", resource.CreateBranchResourceRouter(repo))
-		r.Get("/branch-group", func(writer http.ResponseWriter, request *http.Request) {
-			ctx := request.Context()
-			organisationId, ok := ctx.Value(resource.OrganisationIdKey).(uuid.UUID)
-			if !ok {
-				http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			writer.Write([]byte(fmt.Sprintf("organisation:%s", organisationId)))
-		})
+		r.Route("/branch-group", resource.CreateBranchGroupResourceRouter(repo))
 	})
 	server := http.Server{
 		Addr:         ":8080",
