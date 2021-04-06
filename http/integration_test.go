@@ -57,13 +57,26 @@ func (c *testClient) GetBranchesByBranchGroup(branchGroupId uuid.UUID) []uuid.UU
 	defer res.Body.Close()
 	var result []uuid.UUID
 	dec := json.NewDecoder(res.Body)
+	// TODO: Is this the right way to read an array?
+	// read [
+	_, err = dec.Token()
+	if err != nil {
+		c.t.Fatal(err)
+	}
+
+	// read array
 	for dec.More() {
-		var id []uuid.UUID
+		var id uuid.UUID
 		err := dec.Decode(&id)
 		if err != nil {
 			c.t.Fatal(err)
 		}
-		result = append(result, id...)
+		result = append(result, id)
+	}
+	// read ]
+	_, err = dec.Token()
+	if err != nil {
+		c.t.Fatal(err)
 	}
 
 	return result
@@ -103,7 +116,7 @@ func TestBranchesAndBranchGroups(t *testing.T) {
 	if diff := cmp.Diff(want, result, trans); diff != "" {
 		t.Errorf("Received branches vs expected branches %v", diff)
 	} else {
-		t.Logf("Success. Received branches %v. Want %v", result, want)
+		t.Logf("Success: received branches %v. Want %v", result, want)
 	}
 }
 
