@@ -37,7 +37,7 @@ func GenId(id uuid.UUID, b byte) uuid.UUID {
 	return uuid.NewSHA1(id, []byte{b})
 }
 
-func TestDygraph_TransactionalInsert(t *testing.T) {
+func TestDygraph_TransactionalInsertGetEdges(t *testing.T) {
 	graphClient := CreateTestGraphClient()
 
 	type args struct {
@@ -91,6 +91,72 @@ func TestDygraph_TransactionalInsert(t *testing.T) {
 		}
 
 		got, err := graphClient.GetEdges(tt.id, "ROLE")
+		if err != nil {
+			t.Fatalf("Failed to get edges. The error %v.", err)
+		}
+
+		if diff := cmp.Diff(edges, got, trans); diff != "" {
+			t.Errorf("TransactionalInsert() vs GetEdges() diff %v", diff)
+		}
+	}
+}
+
+func TestDygraph_TransactionalInsertGetNodeEdgesOfType(t *testing.T) {
+	graphClient := CreateTestGraphClient()
+
+	type args struct {
+		getItems func(orgId, id uuid.UUID) []Edge
+	}
+	tests := []struct {
+		name  string
+		orgId uuid.UUID
+		id    uuid.UUID
+		args  args
+	}{
+		{
+			name:  "Insert then retrieve two edges",
+			orgId: uuid.New(),
+			id:    uuid.New(),
+			args: args{
+				getItems: func(orgId, id uuid.UUID) []Edge {
+					return []Edge{
+						{
+							OrganisationId: orgId,
+							Id:             id,
+							TargetNodeId:   GenId(id, 1),
+							TargetNodeType: "ROLE",
+							Tags:           []string{"tag1", "tag2"},
+							Data:           "data1",
+						},
+						{
+							OrganisationId: orgId,
+							Id:             id,
+							TargetNodeId:   GenId(id, 3),
+							TargetNodeType: "ROLE",
+							Tags:           []string{"tag3", "tag4"},
+							Data:           "data2",
+						},
+					}
+				},
+			},
+		},
+	}
+	trans := cmp.Transformer("Sort", func(in []Edge) []Edge {
+		out := append([]Edge(nil), in...) // Copy input to avoid mutating it
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].Data < out[j].Data
+		})
+		return out
+	})
+
+	for _, tt := range tests {
+		edges := tt.args.getItems(tt.orgId, tt.id)
+		err := graphClient.TransactionalInsert(edges)
+		if err != nil {
+			t.Fatalf("Failed to insert edges %v with the error %v.", edges, err)
+		}
+
+		got, err := graphClient.GetNodeEdgesOfType(tt.orgId, tt.id, "ROLE")
 		if err != nil {
 			t.Fatalf("Failed to get edges. The error %v.", err)
 		}
