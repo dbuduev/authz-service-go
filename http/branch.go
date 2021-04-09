@@ -9,11 +9,11 @@ import (
 )
 
 type (
-	BranchRepository interface {
+	branchRepository interface {
 		AddBranch(b core.Branch) error
 	}
-	BranchResource struct {
-		repository BranchRepository
+	branchResource struct {
+		repository branchRepository
 	}
 	branchCreateRequest struct {
 		Id   uuid.UUID `json:"id"`
@@ -29,7 +29,7 @@ func (r branchCreateRequest) ToBranch(organisationId uuid.UUID) core.Branch {
 	}
 }
 
-func (r BranchResource) AddBranch() http.HandlerFunc {
+func (r branchResource) AddBranch() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		organisationId, ok := ctx.Value(OrganisationIdKey).(uuid.UUID)
@@ -53,8 +53,8 @@ func (r BranchResource) AddBranch() http.HandlerFunc {
 	}
 }
 
-func CreateBranchResourceRouter(repository BranchRepository) func(r chi.Router) {
-	res := &BranchResource{repository: repository}
+func CreateBranchResourceRouter(repository branchRepository) func(r chi.Router) {
+	res := &branchResource{repository: repository}
 
 	return func(r chi.Router) {
 		r.Post("/", res.AddBranch())

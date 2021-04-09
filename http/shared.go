@@ -3,7 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
-	"github.com/dbuduev/authz-service-go/repository"
+	"github.com/dbuduev/authz-service-go/core"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -15,7 +15,7 @@ const (
 	BranchGroupIdKey  = "branchGroupId"
 )
 
-func ConfigureHandler(repo *repository.Repository) http.Handler {
+func ConfigureHandler(repo core.Repository) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
