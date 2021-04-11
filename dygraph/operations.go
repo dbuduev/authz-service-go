@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Type Dygraph implements graph operations on top of Amazon DynamoDB
+// Dygraph type implements graph operations on top of Amazon DynamoDB
 type Dygraph struct {
 	client      *dynamodb.DynamoDB
 	environment string
