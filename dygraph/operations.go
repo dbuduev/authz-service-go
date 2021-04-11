@@ -68,12 +68,12 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, e
 
 	result := make([]Node, *output.Count)
 	for i, item := range output.Items {
-		var nodeDto = dto{}
-		err := dynamodbattribute.UnmarshalMap(item, &nodeDto)
+		d := dto{}
+		err := dynamodbattribute.UnmarshalMap(item, &d)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = nodeDto.createNode()
+		result[i] = d.createNode()
 	}
 
 	return result, nil
@@ -100,12 +100,12 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 
 	result := make([]Edge, *output.Count)
 	for i, item := range output.Items {
-		var dto = dto{}
-		err := dynamodbattribute.UnmarshalMap(item, &dto)
+		d := dto{}
+		err := dynamodbattribute.UnmarshalMap(item, &d)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = dto.createEdge()
+		result[i] = d.createEdge()
 	}
 
 	return result, nil
@@ -131,12 +131,12 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 
 	result := make([]Edge, *output.Count)
 	for i, item := range output.Items {
-		var dto = dto{}
-		err := dynamodbattribute.UnmarshalMap(item, &dto)
+		d := dto{}
+		err := dynamodbattribute.UnmarshalMap(item, &d)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = dto.createEdge()
+		result[i] = d.createEdge()
 	}
 
 	return result, nil
