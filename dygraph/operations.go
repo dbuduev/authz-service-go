@@ -11,39 +11,42 @@ import (
 )
 
 var MarshalError = errors.New("marshalling error")
+var UnmarshalError = errors.New("unmarshalling error")
 
 // Dygraph type implements graph operations on top of Amazon DynamoDB
 type Dygraph struct {
 	client      *dynamodb.DynamoDB
 	environment string
 	marshal     func(in interface{}) (map[string]*dynamodb.AttributeValue, error)
+	unmarshal   func(m map[string]*dynamodb.AttributeValue, out interface{}) error
 }
 
 func marshal(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
 	obj, err := dynamodbattribute.MarshalMap(in)
-	const errMessage = "failed to marshal a value"
 	if err != nil {
-		log.Printf("%s %v into map[string]*dynamodb.AttributeValue map", errMessage, in)
-		return nil, err
+		log.Printf("failed to marshal a value %v into map[string]*dynamodb.AttributeValue with error %v", in, err)
+		return nil, fmt.Errorf("%s: %w", err, MarshalError)
 	}
 
 	return obj, nil
 }
 
-//func unmarshal(map[string]*dynamodb.AttributeValue, in interface{}) (, error) {
-//	obj, err := dynamodbattribute.MarshalMap(in)
-//	const errMessage = "failed to marshal a value"
-//	if err != nil {
-//		log.Printf("%s %v into map[string]*dynamodb.AttributeValue map", errMessage, in)
-//	}
-//	return obj, fmt.Errorf("%s: %w", errMessage, err)
-//}
+func unmarshal(m map[string]*dynamodb.AttributeValue, out interface{}) error {
+	err := dynamodbattribute.UnmarshalMap(m, out)
+	if err != nil {
+		log.Printf("failed to unmarshal map[string]*dynamodb.AttributeValue %v", m)
+		return fmt.Errorf("%s: %w", err, UnmarshalError)
+	}
+
+	return nil
+}
 
 func CreateGraphClient(client *dynamodb.DynamoDB, environment string) *Dygraph {
 	return &Dygraph{
 		client:      client,
 		environment: environment,
 		marshal:     marshal,
+		unmarshal:   unmarshal,
 	}
 }
 
@@ -59,7 +62,7 @@ func (r *Dygraph) InsertRecord(node *Node) error {
 	item, err := r.marshal(node.createNodeDto())
 
 	if err != nil {
-		return fmt.Errorf("%s %w", err, MarshalError)
+		return err
 	}
 
 	_, err = r.client.PutItem(&dynamodb.PutItemInput{
@@ -97,7 +100,7 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, e
 	result := make([]Node, *output.Count)
 	for i, item := range output.Items {
 		d := dto{}
-		err := dynamodbattribute.UnmarshalMap(item, &d)
+		err := r.unmarshal(item, &d)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +132,7 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 	result := make([]Edge, *output.Count)
 	for i, item := range output.Items {
 		d := dto{}
-		err := dynamodbattribute.UnmarshalMap(item, &d)
+		err := r.unmarshal(item, &d)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +163,7 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 	result := make([]Edge, *output.Count)
 	for i, item := range output.Items {
 		d := dto{}
-		err := dynamodbattribute.UnmarshalMap(item, &d)
+		err := r.unmarshal(item, &d)
 		if err != nil {
 			return nil, err
 		}

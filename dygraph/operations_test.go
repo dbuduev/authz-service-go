@@ -1,7 +1,7 @@
 package dygraph
 
 import (
-	"fmt"
+	"errors"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/go-cmp/cmp"
@@ -38,7 +38,7 @@ func GenId(id uuid.UUID, b byte) uuid.UUID {
 	return uuid.NewSHA1(id, []byte{b})
 }
 
-func TestDygraph_InsertRecord(t *testing.T) {
+func TestDygraph_InsertRecordDuplicate(t *testing.T) {
 	graphClient := CreateTestGraphClient()
 	node := Node{
 		OrganisationId: uuid.New(),
@@ -48,12 +48,28 @@ func TestDygraph_InsertRecord(t *testing.T) {
 	}
 	err := graphClient.InsertRecord(&node)
 	if err != nil {
-		t.Fatalf("Failed to insert a record with error: %v", err)
+		t.Fatalf("failed to insert a record with error: %v", err)
 	}
 	err = graphClient.InsertRecord(&node)
-	fmt.Println("Error" + err.Error())
 	if err == nil {
-		t.Errorf("expected an error upon inserting a duplicate")
+		t.Errorf("expected an error upon inserting a duplicate %v", err)
+	}
+}
+
+func TestDygraph_InsertRecordMarshal(t *testing.T) {
+	graphClient := CreateTestGraphClient()
+	graphClient.marshal = func(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
+		return nil, errors.New("something went wrong")
+	}
+	node := Node{
+		OrganisationId: uuid.New(),
+		Id:             uuid.New(),
+		Type:           "ROLE",
+		Data:           "Branch manager",
+	}
+	err := graphClient.InsertRecord(&node)
+	if err == nil {
+		t.Errorf("expected an error")
 	}
 }
 
@@ -198,4 +214,67 @@ func GetClient() *dynamodb.DynamoDB {
 
 func CreateTestGraphClient() *Dygraph {
 	return CreateGraphClient(GetClient(), "test")
+}
+
+func Test_marshal(t *testing.T) {
+	type args struct {
+		in interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string]*dynamodb.AttributeValue
+		wantErr bool
+	}{
+		{
+			name: "Failed to marshal",
+			args: args{
+				in: map[string]string{
+					"": "hi",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := marshal(tt.args.in)
+			if (err != nil) != tt.wantErr || (tt.wantErr && !errors.Is(err, MarshalError)) {
+				t.Errorf("marshal() error = %v, got = %v, wantErr %v", err, got, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("marshal() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_unmarshal(t *testing.T) {
+	type args struct {
+		m   map[string]*dynamodb.AttributeValue
+		out interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Failed to unmarshal",
+			args: args{
+				m:   nil,
+				out: nil,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := unmarshal(tt.args.m, tt.args.out); (err != nil) != tt.wantErr || tt.wantErr && !errors.Is(err, UnmarshalError) {
+				t.Errorf("unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
