@@ -1,6 +1,7 @@
 package dygraph
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/go-cmp/cmp"
@@ -35,6 +36,25 @@ func TestGetNodes(t *testing.T) {
 
 func GenId(id uuid.UUID, b byte) uuid.UUID {
 	return uuid.NewSHA1(id, []byte{b})
+}
+
+func TestDygraph_InsertRecord(t *testing.T) {
+	graphClient := CreateTestGraphClient()
+	node := Node{
+		OrganisationId: uuid.New(),
+		Id:             uuid.New(),
+		Type:           "ROLE",
+		Data:           "Branch manager",
+	}
+	err := graphClient.InsertRecord(&node)
+	if err != nil {
+		t.Fatalf("Failed to insert a record with error: %v", err)
+	}
+	err = graphClient.InsertRecord(&node)
+	fmt.Println("Error" + err.Error())
+	if err == nil {
+		t.Errorf("expected an error upon inserting a duplicate")
+	}
 }
 
 func TestDygraph_TransactionalInsertGetEdges(t *testing.T) {
