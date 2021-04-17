@@ -24,8 +24,10 @@ func marshal(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
 	const errMessage = "failed to marshal a value"
 	if err != nil {
 		log.Printf("%s %v into map[string]*dynamodb.AttributeValue map", errMessage, in)
+		return nil, err
 	}
-	return obj, fmt.Errorf("%s: %w", errMessage, err)
+
+	return obj, nil
 }
 
 //func unmarshal(map[string]*dynamodb.AttributeValue, in interface{}) (, error) {
@@ -57,7 +59,7 @@ func (r *Dygraph) InsertRecord(node *Node) error {
 	item, err := r.marshal(node.createNodeDto())
 
 	if err != nil {
-		return fmt.Errorf("failed to marshal a node: %w", err)
+		return fmt.Errorf("%s %w", err, MarshalError)
 	}
 
 	_, err = r.client.PutItem(&dynamodb.PutItemInput{
