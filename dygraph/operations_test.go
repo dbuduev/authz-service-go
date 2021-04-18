@@ -56,20 +56,37 @@ func TestDygraph_InsertRecordDuplicate(t *testing.T) {
 	}
 }
 
-func TestDygraph_InsertRecordMarshal(t *testing.T) {
+func TestDygraph_MarshalErrors(t *testing.T) {
 	graphClient := CreateTestGraphClient()
 	graphClient.marshal = func(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
 		return nil, errors.New("something went wrong")
 	}
-	node := Node{
-		OrganisationId: uuid.New(),
-		Id:             uuid.New(),
-		Type:           "ROLE",
-		Data:           "Branch manager",
+
+	tests := []struct {
+		name string
+		f    func() error
+	}{
+		{
+			name: "InsertRecord",
+			f: func() error {
+				return graphClient.InsertRecord(&Node{})
+			},
+		},
+		{
+			name: "TransactionalInsert",
+			f: func() error {
+				return graphClient.TransactionalInsert([]Edge{{}})
+			},
+		},
 	}
-	err := graphClient.InsertRecord(&node)
-	if err == nil {
-		t.Errorf("expected an error")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.f()
+			if err == nil {
+				t.Errorf("expected an error")
+			}
+		})
 	}
 }
 
@@ -120,20 +137,22 @@ func TestDygraph_TransactionalInsertGetEdges(t *testing.T) {
 	})
 
 	for _, tt := range tests {
-		edges := tt.args.getItems(tt.id)
-		err := graphClient.TransactionalInsert(edges)
-		if err != nil {
-			t.Fatalf("Failed to insert edges %v with the error %v.", edges, err)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			edges := tt.args.getItems(tt.id)
+			err := graphClient.TransactionalInsert(edges)
+			if err != nil {
+				t.Fatalf("Failed to insert edges %v with the error %v.", edges, err)
+			}
 
-		got, err := graphClient.GetEdges(tt.id, "ROLE")
-		if err != nil {
-			t.Fatalf("Failed to get edges. The error %v.", err)
-		}
+			got, err := graphClient.GetEdges(tt.id, "ROLE")
+			if err != nil {
+				t.Fatalf("Failed to get edges. The error %v.", err)
+			}
 
-		if diff := cmp.Diff(edges, got, trans); diff != "" {
-			t.Errorf("TransactionalInsert() vs GetEdges() diff %v", diff)
-		}
+			if diff := cmp.Diff(edges, got, trans); diff != "" {
+				t.Errorf("TransactionalInsert() vs GetEdges() diff %v", diff)
+			}
+		})
 	}
 }
 
