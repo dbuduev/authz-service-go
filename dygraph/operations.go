@@ -13,9 +13,15 @@ import (
 var MarshalError = errors.New("marshalling error")
 var UnmarshalError = errors.New("unmarshalling error")
 
+type dynamoDBAPI interface {
+	PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error)
+	Query(input *dynamodb.QueryInput) (*dynamodb.QueryOutput, error)
+	TransactWriteItems(input *dynamodb.TransactWriteItemsInput) (*dynamodb.TransactWriteItemsOutput, error)
+}
+
 // Dygraph type implements graph operations on top of Amazon DynamoDB
 type Dygraph struct {
-	client      *dynamodb.DynamoDB
+	client      dynamoDBAPI
 	environment string
 	marshal     func(in interface{}) (map[string]*dynamodb.AttributeValue, error)
 	unmarshal   func(m map[string]*dynamodb.AttributeValue, out interface{}) error
@@ -41,7 +47,7 @@ func unmarshal(m map[string]*dynamodb.AttributeValue, out interface{}) error {
 	return nil
 }
 
-func CreateGraphClient(client *dynamodb.DynamoDB, environment string) *Dygraph {
+func CreateGraphClient(client dynamoDBAPI, environment string) *Dygraph {
 	return &Dygraph{
 		client:      client,
 		environment: environment,
