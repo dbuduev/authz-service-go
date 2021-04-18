@@ -2,6 +2,7 @@ package dygraph
 
 import (
 	"errors"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/go-cmp/cmp"
@@ -58,7 +59,7 @@ func TestDygraph_InsertRecordDuplicate(t *testing.T) {
 
 func TestDygraph_MarshalErrors(t *testing.T) {
 	graphClient := CreateTestGraphClient()
-	graphClient.marshal = func(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
+	graphClient.marshal = func(_ interface{}) (map[string]*dynamodb.AttributeValue, error) {
 		return nil, errors.New("something went wrong")
 	}
 
@@ -76,6 +77,56 @@ func TestDygraph_MarshalErrors(t *testing.T) {
 			name: "TransactionalInsert",
 			f: func() error {
 				return graphClient.TransactionalInsert([]Edge{{}})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.f()
+			if err == nil {
+				t.Errorf("expected an error")
+			}
+		})
+	}
+}
+func TestDygraph_UnmarshalErrors(t *testing.T) {
+	stub := dynamodbAPIStub{
+		query: func(_ *dynamodb.QueryInput) (*dynamodb.QueryOutput, error) {
+			return &dynamodb.QueryOutput{
+				Count: aws.Int64(2),
+				Items: []map[string]*dynamodb.AttributeValue{nil, nil},
+			}, nil
+		},
+	}
+	graphClient := CreateGraphClient(&stub, "test")
+	graphClient.unmarshal = func(_ map[string]*dynamodb.AttributeValue, _ interface{}) error {
+		return errors.New("something went wrong")
+	}
+
+	tests := []struct {
+		name string
+		f    func() error
+	}{
+		{
+			name: "GetNodes",
+			f: func() error {
+				_, err := graphClient.GetNodes(uuid.New(), "PHONY")
+				return err
+			},
+		},
+		{
+			name: "GetEdges",
+			f: func() error {
+				_, err := graphClient.GetEdges(uuid.New(), "PHONY")
+				return err
+			},
+		},
+		{
+			name: "GetNodeEdgesOfType",
+			f: func() error {
+				_, err := graphClient.GetNodeEdgesOfType(uuid.New(), uuid.New(), "PHONY")
+				return err
 			},
 		},
 	}
