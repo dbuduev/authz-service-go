@@ -23,12 +23,12 @@ type Edge struct {
 }
 
 type dto struct {
-	GlobalId       string `json:"globalId"`
-	TypeTarget     string `json:"typeTarget"`
-	OrganisationId string `json:"organisationId"`
-	Id             string `json:"id"`
-	Type           string `json:"type"`
-	Data           string `json:"data"`
+	GlobalId       string `dynamodbav:"globalId"`
+	TypeTarget     string `dynamodbav:"typeTarget"`
+	OrganisationId string `dynamodbav:"organisationId"`
+	Id             string `dynamodbav:"id"`
+	Type           string `dynamodbav:"type"`
+	Data           string `dynamodbav:"data"`
 }
 
 const separator = "|"

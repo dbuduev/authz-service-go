@@ -1,12 +1,15 @@
 package dygraph
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
+
 	"log"
 )
 
@@ -14,37 +17,41 @@ var MarshalError = errors.New("marshalling error")
 var UnmarshalError = errors.New("unmarshalling error")
 
 type dynamoDBAPI interface {
-	PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error)
-	Query(input *dynamodb.QueryInput) (*dynamodb.QueryOutput, error)
-	TransactWriteItems(input *dynamodb.TransactWriteItemsInput) (*dynamodb.TransactWriteItemsOutput, error)
+	PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
+	Query(ctx context.Context, input *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error)
+	TransactWriteItems(ctx context.Context, input *dynamodb.TransactWriteItemsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error)
 }
 
 // Dygraph type implements graph operations on top of Amazon DynamoDB
 type Dygraph struct {
 	client      dynamoDBAPI
 	environment string
-	marshal     func(in interface{}) (map[string]*dynamodb.AttributeValue, error)
-	unmarshal   func(m map[string]*dynamodb.AttributeValue, out interface{}) error
+	marshal     func(in interface{}) (map[string]types.AttributeValue, error)
+	unmarshal   func(m map[string]types.AttributeValue, out interface{}) error
 }
 
-func marshal(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
-	obj, err := dynamodbattribute.MarshalMap(in)
+func marshal(in interface{}) (map[string]types.AttributeValue, error) {
+	obj, err := attributevalue.MarshalMap(in)
 	if err != nil {
-		log.Printf("failed to marshal a value %v into map[string]*dynamodb.AttributeValue with error %v", in, err)
+		log.Printf("failed to marshal a value %v into map[string]*types.AttributeValue with error %v", in, err)
 		return nil, fmt.Errorf("%s: %w", err, MarshalError)
 	}
 
 	return obj, nil
 }
 
-func unmarshal(m map[string]*dynamodb.AttributeValue, out interface{}) error {
-	err := dynamodbattribute.UnmarshalMap(m, out)
+func unmarshal(m map[string]types.AttributeValue, out interface{}) error {
+	err := attributevalue.UnmarshalMap(m, out)
 	if err != nil {
-		log.Printf("failed to unmarshal map[string]*dynamodb.AttributeValue %v", m)
+		log.Printf("failed to unmarshal map[string]*types.AttributeValue %v", m)
 		return fmt.Errorf("%s: %w", err, UnmarshalError)
 	}
 
 	return nil
+}
+
+func wrapAwsError(err error) error {
+	return err
 }
 
 func CreateGraphClient(client dynamoDBAPI, environment string) *Dygraph {
@@ -71,7 +78,7 @@ func (r *Dygraph) InsertRecord(node *Node) error {
 		return err
 	}
 
-	_, err = r.client.PutItem(&dynamodb.PutItemInput{
+	_, err = r.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		ConditionExpression: aws.String("attribute_not_exists(id)"),
 		Item:                item,
 		TableName:           aws.String(r.getTableName()),
@@ -85,17 +92,13 @@ func (r *Dygraph) InsertRecord(node *Node) error {
 }
 
 func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, error) {
-	output, err := r.client.Query(&dynamodb.QueryInput{
+	output, err := r.client.Query(context.TODO(), &dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
 		TableName:              aws.String(r.getTableName()),
 		KeyConditionExpression: aws.String("organisationId = :organisationId and begins_with(typeTarget, :type)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":organisationId": {
-				S: aws.String(organisationId.String()),
-			},
-			":type": {
-				S: aws.String(nodePrefix + nodeType),
-			},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":organisationId": &types.AttributeValueMemberS{Value: organisationId.String()},
+			":type":           &types.AttributeValueMemberS{Value: nodePrefix + nodeType},
 		},
 	})
 
@@ -103,7 +106,7 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, e
 		return nil, err
 	}
 
-	result := make([]Node, *output.Count)
+	result := make([]Node, output.Count)
 	for i, item := range output.Items {
 		d := dto{}
 		err := r.unmarshal(item, &d)
@@ -117,17 +120,13 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, e
 }
 
 func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, error) {
-	output, err := r.client.Query(&dynamodb.QueryInput{
+	output, err := r.client.Query(context.TODO(), &dynamodb.QueryInput{
 		IndexName:              aws.String("GSIApplicationTypeTarget"),
 		TableName:              aws.String(r.getTableName()),
 		KeyConditionExpression: aws.String("organisationId = :organisationId and begins_with(typeTarget, :type)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":organisationId": {
-				S: aws.String(organisationId.String()),
-			},
-			":type": {
-				S: aws.String(edgePrefix + edgeType),
-			},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":organisationId": &types.AttributeValueMemberS{Value: organisationId.String()},
+			":type":           &types.AttributeValueMemberS{Value: edgePrefix + edgeType},
 		},
 	})
 
@@ -135,7 +134,7 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 		return nil, err
 	}
 
-	result := make([]Edge, *output.Count)
+	result := make([]Edge, output.Count)
 	for i, item := range output.Items {
 		d := dto{}
 		err := r.unmarshal(item, &d)
@@ -149,16 +148,12 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 }
 
 func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType string) ([]Edge, error) {
-	output, err := r.client.Query(&dynamodb.QueryInput{
+	output, err := r.client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:              aws.String(r.getTableName()),
 		KeyConditionExpression: aws.String("globalId = :globalId and begins_with(typeTarget, :type)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":globalId": {
-				S: aws.String(organisationId.String() + "_" + id.String()),
-			},
-			":type": {
-				S: aws.String(edgePrefix + edgeType),
-			},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":globalId": &types.AttributeValueMemberS{Value: organisationId.String() + "_" + id.String()},
+			":type":     &types.AttributeValueMemberS{Value: edgePrefix + edgeType},
 		},
 	})
 
@@ -166,7 +161,7 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 		return nil, err
 	}
 
-	result := make([]Edge, *output.Count)
+	result := make([]Edge, output.Count)
 	for i, item := range output.Items {
 		d := dto{}
 		err := r.unmarshal(item, &d)
@@ -180,21 +175,21 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 }
 
 func (r *Dygraph) TransactionalInsert(items []Edge) error {
-	transactWriteItems := make([]*dynamodb.TransactWriteItem, len(items))
+	transactWriteItems := make([]types.TransactWriteItem, len(items))
 	for i := 0; i < len(items); i++ {
 		av, err := r.marshal(items[i].createEdgeDto())
 		if err != nil {
 			return err
 		}
-		transactWriteItems[i] = &dynamodb.TransactWriteItem{
-			Put: &dynamodb.Put{
+		transactWriteItems[i] = types.TransactWriteItem{
+			Put: &types.Put{
 				ConditionExpression: aws.String("attribute_not_exists(id)"),
 				Item:                av,
 				TableName:           aws.String(r.getTableName()),
 			},
 		}
 	}
-	_, err := r.client.TransactWriteItems(&dynamodb.TransactWriteItemsInput{
+	_, err := r.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
 		TransactItems: transactWriteItems,
 	})
 

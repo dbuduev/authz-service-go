@@ -1,12 +1,15 @@
 package dygraph
 
 import (
+	"context"
 	"errors"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+	"log"
 	"reflect"
 	"sort"
 	"testing"
@@ -59,7 +62,7 @@ func TestDygraph_InsertRecordDuplicate(t *testing.T) {
 
 func TestDygraph_MarshalErrors(t *testing.T) {
 	graphClient := CreateTestGraphClient()
-	graphClient.marshal = func(_ interface{}) (map[string]*dynamodb.AttributeValue, error) {
+	graphClient.marshal = func(_ interface{}) (map[string]types.AttributeValue, error) {
 		return nil, errors.New("something went wrong")
 	}
 
@@ -92,15 +95,15 @@ func TestDygraph_MarshalErrors(t *testing.T) {
 }
 func TestDygraph_UnmarshalErrors(t *testing.T) {
 	stub := dynamodbAPIStub{
-		query: func(_ *dynamodb.QueryInput) (*dynamodb.QueryOutput, error) {
+		query: func(_ context.Context, _ *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
 			return &dynamodb.QueryOutput{
-				Count: aws.Int64(2),
-				Items: []map[string]*dynamodb.AttributeValue{nil, nil},
+				Count: 2,
+				Items: []map[string]types.AttributeValue{nil, nil},
 			}, nil
 		},
 	}
 	graphClient := CreateGraphClient(&stub, "test")
-	graphClient.unmarshal = func(_ map[string]*dynamodb.AttributeValue, _ interface{}) error {
+	graphClient.unmarshal = func(_ map[string]types.AttributeValue, _ interface{}) error {
 		return errors.New("something went wrong")
 	}
 
@@ -273,13 +276,24 @@ func TestDygraph_TransactionalInsertGetNodeEdgesOfType(t *testing.T) {
 	}
 }
 
-func GetClient() *dynamodb.DynamoDB {
+func GetClient() *dynamodb.Client {
 	// Create DynamoDB client
-	s := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithSharedConfigFiles(config.DefaultSharedConfigFiles),
+		config.WithSharedCredentialsFiles(config.DefaultSharedCredentialsFiles),
+	)
+	if err != nil {
+		log.Fatalf("failed to load configuration, %v", err)
+	}
 
-	return dynamodb.New(s, s.Config.WithEndpoint("http://localhost:8000"))
+	return dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+		//o.ClientLogMode |= aws.LogRequestWithBody
+		o.EndpointResolver = dynamodb.EndpointResolverFunc(
+			func(region string, options dynamodb.EndpointResolverOptions) (aws.Endpoint, error) {
+				options.DisableHTTPS = true
+				return aws.Endpoint{URL: "http://localhost:8000", HostnameImmutable: true}, nil
+			})
+	})
 }
 
 func CreateTestGraphClient() *Dygraph {
@@ -293,7 +307,7 @@ func Test_marshal(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    map[string]*dynamodb.AttributeValue
+		want    map[string]types.AttributeValue
 		wantErr bool
 	}{
 		{
@@ -323,7 +337,7 @@ func Test_marshal(t *testing.T) {
 
 func Test_unmarshal(t *testing.T) {
 	type args struct {
-		m   map[string]*dynamodb.AttributeValue
+		m   map[string]types.AttributeValue
 		out interface{}
 	}
 	tests := []struct {
