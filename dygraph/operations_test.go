@@ -119,6 +119,51 @@ func TestDygraph_DuplicateErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestDygraph_TooManyRequestsErrors(t *testing.T) {
+	stub := dynamodbAPIStub{
+		query: func(_ context.Context, _ *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+			return nil, &types.ProvisionedThroughputExceededException{}
+		},
+	}
+	graphClient := CreateGraphClient(&stub, "test")
+
+	tests := []struct {
+		name string
+		f    func() error
+	}{
+		{
+			name: "GetNodes",
+			f: func() error {
+				_, err := graphClient.GetNodes(uuid.New(), "ROLE")
+				return err
+			},
+		},
+		{
+			name: "GetEdges",
+			f: func() error {
+				_, err := graphClient.GetNodes(uuid.New(), "ROLE")
+				return err
+			},
+		},
+		{
+			name: "GetNodeEdgesOfType",
+			f: func() error {
+				_, err := graphClient.GetNodeEdgesOfType(uuid.New(), uuid.New(), "ROLE")
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.f()
+			if !errors.Is(err, TooManyRequestsError) {
+				t.Errorf("expected too many request exception, got %v", err)
+			}
+		})
+	}
+}
 func TestDygraph_UnmarshalErrors(t *testing.T) {
 	stub := dynamodbAPIStub{
 		query: func(_ context.Context, _ *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {

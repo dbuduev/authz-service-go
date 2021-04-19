@@ -61,7 +61,7 @@ func wrapAwsError(err error) error {
 	var tooManyRequests *types.ProvisionedThroughputExceededException
 	if errors.As(err, &tooManyRequests) {
 		log.Printf("too many requests exception: %s", err)
-		return fmt.Errorf("%s: %w", err, DuplicateError)
+		return fmt.Errorf("%s: %w", err, TooManyRequestsError)
 	}
 
 	return err
