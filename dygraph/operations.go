@@ -15,6 +15,8 @@ import (
 
 var MarshalError = errors.New("marshalling error")
 var UnmarshalError = errors.New("unmarshalling error")
+var DuplicateError = errors.New("duplicate")
+var TooManyRequestsError = errors.New("too many requests")
 
 type dynamoDBAPI interface {
 	PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
@@ -51,6 +53,17 @@ func unmarshal(m map[string]types.AttributeValue, out interface{}) error {
 }
 
 func wrapAwsError(err error) error {
+	var conditionalCheckFailedException *types.ConditionalCheckFailedException
+	if errors.As(err, &conditionalCheckFailedException) {
+		log.Printf("duplicate item exception: %s", err)
+		return fmt.Errorf("%s: %w", err, DuplicateError)
+	}
+	var tooManyRequests *types.ProvisionedThroughputExceededException
+	if errors.As(err, &tooManyRequests) {
+		log.Printf("too many requests exception: %s", err)
+		return fmt.Errorf("%s: %w", err, DuplicateError)
+	}
+
 	return err
 }
 
@@ -85,7 +98,7 @@ func (r *Dygraph) InsertRecord(node *Node) error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("insert record: %w", wrapAwsError(err))
 	}
 
 	return nil
@@ -103,7 +116,8 @@ func (r *Dygraph) GetNodes(organisationId uuid.UUID, nodeType string) ([]Node, e
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get nodes: %w", wrapAwsError(err))
+
 	}
 
 	result := make([]Node, output.Count)
@@ -131,7 +145,7 @@ func (r *Dygraph) GetEdges(organisationId uuid.UUID, edgeType string) ([]Edge, e
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get edges: %w", wrapAwsError(err))
 	}
 
 	result := make([]Edge, output.Count)
@@ -158,7 +172,7 @@ func (r *Dygraph) GetNodeEdgesOfType(organisationId, id uuid.UUID, edgeType stri
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get node edges of type: %w", wrapAwsError(err))
 	}
 
 	result := make([]Edge, output.Count)
@@ -193,5 +207,17 @@ func (r *Dygraph) TransactionalInsert(items []Edge) error {
 		TransactItems: transactWriteItems,
 	})
 
-	return err
+	if err != nil {
+		var transactionCancelledException *types.TransactionCanceledException
+		if errors.As(err, &transactionCancelledException) {
+			for i, reason := range transactionCancelledException.CancellationReasons {
+				if *reason.Code == "ConditionalCheckFailed" {
+					log.Printf("duplicate item %v", items[i])
+				}
+			}
+			return fmt.Errorf("duplicate item exception: %w", DuplicateError)
+		}
+	}
+
+	return nil
 }

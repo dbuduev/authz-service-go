@@ -40,24 +40,6 @@ func GenId(id uuid.UUID, b byte) uuid.UUID {
 	return uuid.NewSHA1(id, []byte{b})
 }
 
-func TestDygraph_InsertRecordDuplicate(t *testing.T) {
-	graphClient := CreateTestGraphClient()
-	node := Node{
-		OrganisationId: uuid.New(),
-		Id:             uuid.New(),
-		Type:           "ROLE",
-		Data:           "Branch manager",
-	}
-	err := graphClient.InsertRecord(&node)
-	if err != nil {
-		t.Fatalf("failed to insert a record with error: %v", err)
-	}
-	err = graphClient.InsertRecord(&node)
-	if err == nil {
-		t.Errorf("expected an error upon inserting a duplicate %v", err)
-	}
-}
-
 func TestDygraph_MarshalErrors(t *testing.T) {
 	graphClient := CreateTestGraphClient()
 	graphClient.marshal = func(_ interface{}) (map[string]types.AttributeValue, error) {
@@ -87,6 +69,52 @@ func TestDygraph_MarshalErrors(t *testing.T) {
 			err := tt.f()
 			if err == nil {
 				t.Errorf("expected an error")
+			}
+		})
+	}
+}
+func TestDygraph_DuplicateErrors(t *testing.T) {
+	graphClient := CreateTestGraphClient()
+
+	tests := []struct {
+		name string
+		f    func() error
+	}{
+		{
+			name: "InsertRecord",
+			f: func() error {
+				node := Node{
+					OrganisationId: uuid.New(),
+					Id:             uuid.New(),
+					Type:           "PHONY",
+					Data:           "PHONY",
+				}
+				graphClient.InsertRecord(&node)
+				return graphClient.InsertRecord(&node)
+			},
+		},
+		{
+			name: "TransactionalInsert",
+			f: func() error {
+				edge := Edge{
+					OrganisationId: uuid.New(),
+					Id:             uuid.New(),
+					TargetNodeId:   uuid.New(),
+					TargetNodeType: "PHONY",
+					Tags:           nil,
+					Data:           "PHONY",
+				}
+				graphClient.TransactionalInsert([]Edge{edge})
+				return graphClient.TransactionalInsert([]Edge{edge})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.f()
+			if !errors.Is(err, DuplicateError) {
+				t.Errorf("expected a duplicate error")
 			}
 		})
 	}
