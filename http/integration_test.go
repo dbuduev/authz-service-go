@@ -3,10 +3,9 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/dbuduev/authz-service-go/dygraph"
 	"github.com/dbuduev/authz-service-go/repository"
+	"github.com/dbuduev/authz-service-go/testutils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"net/http"
@@ -120,17 +119,8 @@ func TestBranchesAndBranchGroups(t *testing.T) {
 	}
 }
 
-func GetClient() *dynamodb.DynamoDB {
-	// Create DynamoDB client
-	s := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-
-	return dynamodb.New(s, s.Config.WithEndpoint("http://localhost:8000"))
-}
-
 func CreateTestGraphClient() *dygraph.Dygraph {
-	return dygraph.CreateGraphClient(GetClient(), "test")
+	return dygraph.CreateGraphClient(testutils.GetClient(), "test")
 }
 
 func CreateTestRepository() *repository.Repository {

@@ -1,16 +1,11 @@
-package main
+package testutils
 
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/dbuduev/authz-service-go/dygraph"
-	resource "github.com/dbuduev/authz-service-go/http"
-	"github.com/dbuduev/authz-service-go/repository"
 	"log"
-	"net/http"
-	"time"
 )
 
 func GetClient() *dynamodb.Client {
@@ -31,20 +26,4 @@ func GetClient() *dynamodb.Client {
 				return aws.Endpoint{URL: "http://localhost:8000", HostnameImmutable: true}, nil
 			})
 	})
-}
-
-func main() {
-	repo := repository.CreateRepository(dygraph.CreateGraphClient(GetClient(), "test"))
-
-	server := http.Server{
-		Addr:         ":8080",
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 90 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      resource.ConfigureHandler(repo),
-	}
-	err := server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		panic(err)
-	}
 }

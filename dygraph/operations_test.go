@@ -3,13 +3,11 @@ package dygraph
 import (
 	"context"
 	"errors"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/dbuduev/authz-service-go/testutils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
-	"log"
 	"reflect"
 	"sort"
 	"testing"
@@ -276,28 +274,8 @@ func TestDygraph_TransactionalInsertGetNodeEdgesOfType(t *testing.T) {
 	}
 }
 
-func GetClient() *dynamodb.Client {
-	// Create DynamoDB client
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithSharedConfigFiles(config.DefaultSharedConfigFiles),
-		config.WithSharedCredentialsFiles(config.DefaultSharedCredentialsFiles),
-	)
-	if err != nil {
-		log.Fatalf("failed to load configuration, %v", err)
-	}
-
-	return dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
-		//o.ClientLogMode |= aws.LogRequestWithBody
-		o.EndpointResolver = dynamodb.EndpointResolverFunc(
-			func(region string, options dynamodb.EndpointResolverOptions) (aws.Endpoint, error) {
-				options.DisableHTTPS = true
-				return aws.Endpoint{URL: "http://localhost:8000", HostnameImmutable: true}, nil
-			})
-	})
-}
-
 func CreateTestGraphClient() *Dygraph {
-	return CreateGraphClient(GetClient(), "test")
+	return CreateGraphClient(testutils.GetClient(), "test")
 }
 
 func Test_marshal(t *testing.T) {
