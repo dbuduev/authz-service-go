@@ -142,7 +142,7 @@ func TestDygraph_TooManyRequestsErrors(t *testing.T) {
 		{
 			name: "GetEdges",
 			f: func() error {
-				_, err := graphClient.GetNodes(uuid.New(), "ROLE")
+				_, err := graphClient.GetEdges(uuid.New(), "ROLE")
 				return err
 			},
 		},
