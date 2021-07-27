@@ -19,3 +19,7 @@ Legend:
 | '0_g1'                     | '0'                      | 'g1'    | 'edge_BRANCH &#124; b1'                        | 'edge_BRANCH &#124; b1'                        | 'b1'           |
 | '0_u1'                     | '0'                      | 'u1'    | 'edge_ROLE &#124; r1 &#124; ASSIGNED_IN_BRANCH &#124; b1'  | 'edge_ROLE &#124; r1'                          | 'b1'           |
 | '0_r1'                     | '0'                      | 'r1'    | 'edge_USER &#124; u1 &#124; ASSIGNED_IN_BRANCH &#124; b1'  | 'edge_USER &#124; u1'                          | 'b1'           |
+
+### Usage
+`make test` will try to run Amazon DynamoDB container locally before running tests.
+Requires Docker and AWS CLI.
