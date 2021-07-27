@@ -1,7 +1,7 @@
-build: test
+build: 
 	go build main.go
 
-test:
+test: build
 	go test ./...
 
 cover:
