@@ -1,7 +1,13 @@
 build: 
 	go build main.go
 
-test: build
+dynamodb:
+	./scripts/run_dynamodb
+
+create_table: dynamodb
+	./scripts/create_table
+
+test: build create_table
 	go test ./...
 
 cover:

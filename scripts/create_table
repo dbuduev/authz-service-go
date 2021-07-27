@@ -1,1 +1,4 @@
-aws dynamodb create-table --endpoint-url http://localhost:8000 --cli-input-json file://table-Authorization.json
+#! /bin/sh
+
+aws dynamodb describe-table --table-name Authorization-test --endpoint-url http://localhost:8000 > /dev/null 2>&1 || \
+aws dynamodb create-table --endpoint-url http://localhost:8000 --cli-input-json file://scripts/table-Authorization.json >/dev/null
