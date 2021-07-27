@@ -18,20 +18,6 @@ func (m BranchGroupContent) Reverse() BranchGroupsOfBranch {
 	result := make(BranchGroupsOfBranch)
 	for group, branches := range m {
 		for _, branch := range branches {
-			if groups, ok := result[branch]; ok {
-				result[branch] = append(groups, group)
-			} else {
-				result[branch] = []uuid.UUID{group}
-			}
-		}
-	}
-	return result
-}
-
-func (m BranchGroupContent) Reverse1() BranchGroupsOfBranch {
-	result := make(BranchGroupsOfBranch)
-	for group, branches := range m {
-		for _, branch := range branches {
 			result[branch] = append(result[branch], group)
 		}
 	}

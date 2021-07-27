@@ -44,7 +44,7 @@ func TestBranchGroupContent_Reverse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.m.Reverse1()
+			got := tt.m.Reverse()
 			if diff := cmp.Diff(tt.want, got, trans); diff != "" {
 				t.Errorf("Reverse1() mismatch (-want +got):\n%s", diff)
 			}
