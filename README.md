@@ -7,7 +7,7 @@ Legend:
 * GSI: Global Secondary Index
 * LSI: Local Secondary Index
 
-| globalId (HK)              | applicationId (GSK1: HK) | id      | typeTarget (RK, GSK1: RK)                | typeTargetTagless  (LSK1: RK)            | data           |
+| globalId (HK)              | organisationId (GSK1: HK) | id      | typeTarget (RK, GSK1: RK)                | typeTargetTagless  (LSK1: RK)            | data           |
 | -------------------------- | -------------------------|-------- |------------------------------------------|------------------------------------------|----------------|
 | '0_op1'                    | '0'                      | 'op1'   | 'node_OP &#124; op1'                           | 'node_OP &#124; op1'                           | 'add-member'   |
 | '0_op1'                    | '0'                      | 'op1'   | 'edge_ROLE &#124; r1'                          | 'edge_ROLE &#124; r1'                          | 'r1'           |
